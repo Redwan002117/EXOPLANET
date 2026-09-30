@@ -6,15 +6,17 @@ lightkurve>=2.4.0
 
 # Machine learning
 xgboost>=2.0.0
-lightgbm>=4.0.0
+lightgbm>=4.7.0
 scikit-learn>=1.3.0
 shap>=0.44.0
 
 # Optional, each degrades gracefully when absent:
 #   imbalanced-learn -> SMOTE oversampling of the training fold
 #   optuna           -> Bayesian hyperparameter search instead of RandomizedSearchCV
-imbalanced-learn>=0.11.0
-optuna>=3.5.0
+# Both branches are exercised by the test suite; verified against the versions
+# pinned below on Python 3.14.
+imbalanced-learn>=0.14.2
+optuna>=5.0.0
 
 # Deep learning
 torch>=2.0.0          # CPU version; for GPU: see pytorch.org
