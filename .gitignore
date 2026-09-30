@@ -4,16 +4,14 @@ __pycache__/
 *.pyd
 .pytest_cache/
 
-# Trained model artefacts — large binaries, reproducible by running pipeline.py
-saved_models/
-*.pt
-*.pth
-*.onnx
+# Trained model artefacts. saved_models/ IS tracked (checkpoints are part of the
+# deliverable). Transient joblib/pickle dumps outside it stay ignored.
 *.joblib
 *.pkl
+*.onnx
 
-# results/ IS tracked: it holds the per-star JSON findings.
-# The smoke-test copies under the OS temp dir are not part of this repo.
+# results/ and saved_models/ are both tracked: per-star JSON findings and the
+# trained checkpoints that produced them.
 
 # LibreOffice temp + lock files (left behind by headless doc conversion)
 .~lock.*

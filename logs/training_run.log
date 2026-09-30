@@ -1,0 +1,412 @@
+targets   : 60
+results   : F:\thesis\Thesis project\results
+models    : F:\thesis\Thesis project\saved_models
+epochs    : 80
+======================================================================
+Downloading cumulative KOI table... OK  9564 rows
+Downloading TOI table... WARN  'tid'
+=== STEP 1: Data collection ===
+  [K00010.01]
+  Searching MAST for K00010.01 (KIC 6922244)...
+  KIC 6922244 | 62446 cadences | 18 quarters | period=3.522d | label=planet
+    label=planet
+  [K00245.03]
+  Searching MAST for K00245.03 (KIC 8478994)...
+  KIC 8478994 | 65167 cadences | 18 quarters | period=13.367d | label=planet
+    label=planet
+  [K00279.02]
+  Searching MAST for K00279.02 (KIC 12314973)...
+  KIC 12314973 | 64810 cadences | 18 quarters | period=15.413d | label=planet
+    label=planet
+  [K00426.01]
+  Searching MAST for K00426.01 (KIC 10016874)...
+  KIC 10016874 | 64744 cadences | 17 quarters | period=16.301d | label=planet
+    label=planet
+  [K00476.01]
+  Searching MAST for K00476.01 (KIC 10599206)...
+  KIC 10599206 | 64752 cadences | 17 quarters | period=18.428d | label=planet
+    label=planet
+  [K00542.02]
+  Searching MAST for K00542.02 (KIC 11669239)...
+  KIC 11669239 | 64704 cadences | 17 quarters | period=13.817d | label=planet
+    label=planet
+  [K00587.01]
+  Searching MAST for K00587.01 (KIC 9607164)...
+  KIC 9607164 | 51686 cadences | 14 quarters | period=14.035d | label=planet
+    label=planet
+  [K00611.01]
+  Searching MAST for K00611.01 (KIC 6309763)...
+  KIC 6309763 | 63778 cadences | 17 quarters | period=3.252d | label=planet
+    label=planet
+  [K00623.04]
+  Searching MAST for K00623.04 (KIC 12068975)...
+  KIC 12068975 | 64633 cadences | 17 quarters | period=25.210d | label=planet
+    label=planet
+  [K00663.01]
+  Searching MAST for K00663.01 (KIC 6425957)...
+  KIC 6425957 | 50630 cadences | 14 quarters | period=2.756d | label=planet
+    label=planet
+  [K00750.02]
+  Searching MAST for K00750.02 (KIC 10662202)...
+  KIC 10662202 | 64788 cadences | 17 quarters | period=5.044d | label=planet
+    label=planet
+  [K00797.01]
+  Searching MAST for K00797.01 (KIC 3115833)...
+  KIC 3115833 | 63041 cadences | 16 quarters | period=10.182d | label=planet
+    label=planet
+  [K00869.03]
+  Searching MAST for K00869.03 (KIC 6948054)...
+  KIC 6948054 | 64793 cadences | 17 quarters | period=17.461d | label=planet
+    label=planet
+  [K00875.01]
+  Searching MAST for K00875.01 (KIC 7135852)...
+  KIC 7135852 | 64774 cadences | 17 quarters | period=4.221d | label=planet
+    label=planet
+  [K01194.01]
+  Searching MAST for K01194.01 (KIC 3554031)...
+  KIC 3554031 | 41983 cadences | 11 quarters | period=8.708d | label=planet
+    label=planet
+  [K01219.01]
+  Searching MAST for K01219.01 (KIC 3440861)...
+  KIC 3440861 | 64728 cadences | 17 quarters | period=3.504d | label=false_positive
+    label=false_positive
+  [K01614.01]
+  Searching MAST for K01614.01 (KIC 10514429)...
+  KIC 10514429 | 64158 cadences | 17 quarters | period=20.719d | label=false_positive
+    label=false_positive
+  [K01703.01]
+  Searching MAST for K01703.01 (KIC 7380829)...
+  KIC 7380829 | 64724 cadences | 17 quarters | period=3.175d | label=false_positive
+    label=false_positive
+  [K01732.01]
+  Searching MAST for K01732.01 (KIC 6869184)...
+  KIC 6869184 | 64785 cadences | 17 quarters | period=43.317d | label=planet
+    label=planet
+  [K02011.02]
+  Searching MAST for K02011.02 (KIC 5384079)...
+  KIC 5384079 | 65228 cadences | 18 quarters | period=17.265d | label=planet
+    label=planet
+  [K02012.01]
+  Searching MAST for K02012.01 (KIC 9839821)...
+  KIC 9839821 | 64790 cadences | 17 quarters | period=34.854d | label=planet
+    label=planet
+  [K02023.01]
+  Searching MAST for K02023.01 (KIC 8578780)...
+  KIC 8578780 | 64742 cadences | 17 quarters | period=13.591d | label=planet
+    label=planet
+  [K02147.02]
+  Searching MAST for K02147.02 (KIC 10404582)...
+  KIC 10404582 | 64767 cadences | 17 quarters | period=10.327d | label=planet
+    label=planet
+  [K02191.01]
+  Searching MAST for K02191.01 (KIC 5601258)...
+  KIC 5601258 | 50171 cadences | 13 quarters | period=8.848d | label=planet
+    label=planet
+  [K02192.01]
+  Searching MAST for K02192.01 (KIC 9964670)...
+  KIC 9964670 | 51672 cadences | 14 quarters | period=1.541d | label=false_positive
+    label=false_positive
+  [K02267.01]
+  Searching MAST for K02267.01 (KIC 7021534)...
+  KIC 7021534 | 64705 cadences | 17 quarters | period=9.066d | label=false_positive
+    label=false_positive
+  [K02539.01]
+  Searching MAST for K02539.01 (KIC 7289162)...
+  KIC 7289162 | 64768 cadences | 17 quarters | period=5.266d | label=false_positive
+    label=false_positive
+  [K02623.02]
+  Searching MAST for K02623.02 (KIC 10916600)...
+  KIC 10916600 | 65245 cadences | 18 quarters | period=4.027d | label=planet
+    label=planet
+  [K03043.01]
+  Searching MAST for K03043.01 (KIC 9834731)...
+  KIC 9834731 | 64730 cadences | 17 quarters | period=3.089d | label=planet
+    label=planet
+  [K03332.01]
+  Searching MAST for K03332.01 (KIC 5818068)...
+  KIC 5818068 | 53231 cadences | 14 quarters | period=14.127d | label=false_positive
+    label=false_positive
+  [K03497.01]
+  Searching MAST for K03497.01 (KIC 8424002)...
+  KIC 8424002 | 65262 cadences | 18 quarters | period=20.360d | label=planet
+    label=planet
+  [K03540.01]
+  Searching MAST for K03540.01 (KIC 3865298)...
+  KIC 3865298 | 4292 cadences | 1 quarters | period=9.530d | label=false_positive
+    label=false_positive
+  [K03591.01]
+  Searching MAST for K03591.01 (KIC 6182846)...
+  KIC 6182846 | 49524 cadences | 13 quarters | period=6.399d | label=false_positive
+    label=false_positive
+  [K03771.01]
+  Searching MAST for K03771.01 (KIC 10555365)...
+  KIC 10555365 | 21265 cadences | 6 quarters | period=5.802d | label=false_positive
+    label=false_positive
+  [K04205.01]
+  Searching MAST for K04205.01 (KIC 3450040)...
+  KIC 3450040 | 64685 cadences | 17 quarters | period=1.167d | label=planet
+    label=planet
+  [K04352.01]
+  Searching MAST for K04352.01 (KIC 2708221)...
+  KIC 2708221 | 30160 cadences | 8 quarters | period=1.891d | label=false_positive
+    label=false_positive
+  [K04532.01]
+  Searching MAST for K04532.01 (KIC 2710623)...
+  KIC 2710623 | 64721 cadences | 17 quarters | period=1.021d | label=false_positive
+    label=false_positive
+  [K04587.01]
+  Searching MAST for K04587.01 (KIC 5687700)...
+  KIC 5687700 | 50125 cadences | 13 quarters | period=6.363d | label=planet
+    label=planet
+  [K04767.01]
+  Searching MAST for K04767.01 (KIC 5802292)...
+  KIC 5802292 | 41933 cadences | 11 quarters | period=1.209d | label=false_positive
+    label=false_positive
+  [K04875.01]
+  Searching MAST for K04875.01 (KIC 2986833)...
+  KIC 2986833 | 64769 cadences | 17 quarters | period=0.912d | label=planet
+    label=planet
+  [K05011.01]
+  Searching MAST for K05011.01 (KIC 3836509)...
+  KIC 3836509 | 61140 cadences | 17 quarters | period=1.540d | label=false_positive
+    label=false_positive
+  [K05114.01]
+  Searching MAST for K05114.01 (KIC 5015027)...
+  KIC 5015027 | 51943 cadences | 15 quarters | period=34.489d | label=false_positive
+    label=false_positive
+  [K05333.01]
+  Searching MAST for K05333.01 (KIC 6879183)...
+  KIC 6879183 | 63091 cadences | 16 quarters | period=20.548d | label=planet
+    label=planet
+  [K05449.01]
+  Searching MAST for K05449.01 (KIC 7941635)...
+  KIC 7941635 | 64607 cadences | 17 quarters | period=0.763d | label=false_positive
+    label=false_positive
+  [K06035.01]
+  Searching MAST for K06035.01 (KIC 7295570)...
+  KIC 7295570 | 4366 cadences | 1 quarters | period=3.604d | label=false_positive
+    label=false_positive
+  [K06084.01]
+  Searching MAST for K06084.01 (KIC 11021252)...
+  KIC 11021252 | 50257 cadences | 14 quarters | period=3.269d | label=false_positive
+    label=false_positive
+  [K06166.02]
+  Searching MAST for K06166.02 (KIC 7908367)...
+  KIC 7908367 | 3534 cadences | 1 quarters | period=6.651d | label=planet
+    label=planet
+  [K06273.01]
+  Searching MAST for K06273.01 (KIC 2442084)...
+  KIC 2442084 | 64264 cadences | 17 quarters | period=49.789d | label=false_positive
+    label=false_positive
+  [K06590.01]
+  Searching MAST for K06590.01 (KIC 5513822)...
+  KIC 5513822 | 50341 cadences | 14 quarters | period=0.755d | label=false_positive
+    label=false_positive
+  [K06694.01]
+  Searching MAST for K06694.01 (KIC 6364294)...
+  KIC 6364294 | 64728 cadences | 17 quarters | period=5.244d | label=false_positive
+    label=false_positive
+  [K06713.01]
+  Searching MAST for K06713.01 (KIC 6449291)...
+  KIC 6449291 | 64793 cadences | 17 quarters | period=5.777d | label=false_positive
+    label=false_positive
+  [K06767.01]
+  Searching MAST for K06767.01 (KIC 6778289)...
+  KIC 6778289 | 63295 cadences | 18 quarters | period=30.130d | label=false_positive
+    label=false_positive
+  [K06772.01]
+  Searching MAST for K06772.01 (KIC 6806632)...
+  KIC 6806632 | 62495 cadences | 17 quarters | period=9.469d | label=false_positive
+    label=false_positive
+  [K06893.01]
+  Searching MAST for K06893.01 (KIC 7605600)...
+  KIC 7605600 | 30723 cadences | 8 quarters | period=3.326d | label=false_positive
+    label=false_positive
+  [K06903.01]
+  Searching MAST for K06903.01 (KIC 7677005)...
+  KIC 7677005 | 63743 cadences | 18 quarters | period=38.058d | label=false_positive
+    label=false_positive
+  [K06910.01]
+  Searching MAST for K06910.01 (KIC 7733540)...
+  KIC 7733540 | 64788 cadences | 17 quarters | period=0.773d | label=false_positive
+    label=false_positive
+  [K06925.01]
+  Searching MAST for K06925.01 (KIC 7868967)...
+  KIC 7868967 | 64743 cadences | 17 quarters | period=12.949d | label=planet
+    label=planet
+  [K07101.01]
+  Searching MAST for K07101.01 (KIC 8848115)...
+  KIC 8848115 | 13454 cadences | 4 quarters | period=0.825d | label=false_positive
+    label=false_positive
+  [K07405.01]
+  Searching MAST for K07405.01 (KIC 11071207)...
+  KIC 11071207 | 47936 cadences | 14 quarters | period=8.050d | label=false_positive
+    label=false_positive
+  [K07740.01]
+  Searching MAST for K07740.01 (KIC 5774375)...
+  KIC 5774375 | 50173 cadences | 13 quarters | period=1.550d | label=false_positive
+    label=false_positive
+
+  Samples: 60  planets: 30  non-planets: 30  host stars: 60  pos_weight=1.00
+  Train: 40  Val: 11  Test: 9
+  Test host stars: ['K00587', 'K00611', 'K01194', 'K01614', 'K02192', 'K03540', 'K04532', 'K05333', 'K06772']
+  SMOTE: 40 -> 44 training samples
+
+=== STEP 2: Tabular models ===
+  Tuning XGBoost with Optuna (25 trials)...
+    Optuna XGB best F1=0.775  params={'max_depth': 7, 'lr': 0.02333645803284636, 'n_estimators': 227, 'subsample': 0.6092552505165569, 'col_bt': 0.5150284327800021, 'alpha': 0.5431562706907215, 'lambda': 1.3609113788634994, 'mcw': 1, 'gamma': 0.3844757891697784}
+  Tuning Random Forest with RandomizedSearchCV...
+    RS best F1=0.758  params={'n_estimators': 400, 'min_samples_leaf': 3, 'max_features': 'log2', 'max_depth': 12}
+  Tuning Extra Trees with RandomizedSearchCV...
+    RS best F1=0.786  params={'n_estimators': 600, 'min_samples_leaf': 2, 'max_features': 'sqrt'}
+  Tuning LightGBM with Optuna (25 trials)...
+    Optuna LGBM best F1=0.698  params={'n_estimators': 274, 'max_depth': 7, 'lr': 0.050984839695857445, 'num_leaves': 61, 'mcs': 10, 'subsample': 0.8391599915244341, 'col_bt': 0.9609371175115584}
+  Building StackingClassifier meta-ensemble...
+
+  Model                    Accuracy Precision   Recall       F1      AUC   PR-AUC   BalAcc     MCC     CV F1/    std    Thr
+  ------------------------------------------------------------------------------------------------------------------------------
+    Logistic Regression        0.6364    0.5000   1.0000   0.6667   0.6071   0.5821   0.7143   0.463    0.5167/ 0.2708  0.459
+    Decision Tree              0.7273    0.6000   0.7500   0.6667   0.6786   0.5409   0.7321   0.449    0.5755/ 0.1739  0.500
+    KNN                        0.6364    0.5000   1.0000   0.6667   0.6429   0.4500   0.7143   0.463    0.5196/ 0.3199  0.332
+    SVM                        0.5455    0.4444   1.0000   0.6154   0.5714   0.4405   0.6429   0.356    0.7802/ 0.1208  0.500
+    Random Forest              0.5455    0.4444   1.0000   0.6154   0.6429   0.5000   0.6429   0.356    0.7755/ 0.1302  0.500
+    Extra Trees                0.5455    0.4444   1.0000   0.6154   0.5000   0.5382   0.6429   0.356    0.6356/ 0.2404  0.500
+    MLP                        0.6364    0.5000   1.0000   0.6667   0.5714   0.5655   0.7143   0.463    0.6537/ 0.1615  0.477
+    XGBoost                    0.5455    0.4444   1.0000   0.6154   0.5357   0.4405   0.6429   0.356    0.8032/ 0.1365  0.500
+    LightGBM                   0.7273    0.5714   1.0000   0.7273   0.6429   0.4762   0.7857   0.571    0.6721/ 0.2329  0.500
+    Stacking Ensemble          0.6364    0.5000   1.0000   0.6667   0.7143   0.6500   0.7143   0.463    0.4933/ 0.2784  0.500
+
+  Held-out test evaluation (validation thresholds, never re-tuned):
+    Logistic Regression      Acc=0.5556  F1=0.6000  (thr=0.459)
+    Decision Tree            Acc=0.8889  F1=0.8889  (thr=0.500)
+    KNN                      Acc=0.4444  F1=0.5455  (thr=0.332)
+    SVM                      Acc=0.4444  F1=0.5455  (thr=0.500)
+    Random Forest            Acc=0.6667  F1=0.7273  (thr=0.500)
+    Extra Trees              Acc=0.6667  F1=0.7273  (thr=0.500)
+    MLP                      Acc=0.6667  F1=0.6667  (thr=0.477)
+    XGBoost                  Acc=0.6667  F1=0.7273  (thr=0.500)
+    LightGBM                 Acc=0.6667  F1=0.6667  (thr=0.500)
+    Stacking Ensemble        Acc=0.5556  F1=0.6000  (thr=0.500)
+
+=== STEP 3: DualView CNN ===
+  DualViewCNN trainable params: 189,106
+  Ep  10/80  train_loss=0.2108  val_loss=0.7130  F1=0.5333  Acc=0.3636
+  Ep  20/80  train_loss=0.2044  val_loss=0.7399  F1=0.5333  Acc=0.3636
+  Ep  30/80  train_loss=0.1899  val_loss=0.8624  F1=0.5333  Acc=0.3636
+  Ep  40/80  train_loss=0.2049  val_loss=0.8742  F1=0.5714  Acc=0.4545
+  Ep  50/80  train_loss=0.1970  val_loss=1.4781  F1=0.0000  Acc=0.6364
+  Ep  60/80  train_loss=0.2020  val_loss=0.8183  F1=0.5714  Acc=0.4545
+  Ep  70/80  train_loss=0.1926  val_loss=0.6644  F1=0.0000  Acc=0.6364
+  Ep  80/80  train_loss=0.2047  val_loss=0.9875  F1=0.5714  Acc=0.4545
+  CNN Youden threshold: 0.500  (best val F1 0.5714)
+  CNN metrics: {'accuracy': 0.4545, 'precision': 0.4, 'recall': 1.0, 'f1': 0.5714, 'auc': 0.3929, 'mcc': 0.239}
+
+=== STEP 4: BiLSTM ===
+  BiLSTM trainable params: 150,339
+  Ep  10/80  train_loss=0.2212  F1=0.5333  Acc=0.3636
+  Ep  20/80  train_loss=0.2260  F1=0.5333  Acc=0.3636
+  Ep  30/80  train_loss=0.2252  F1=0.5333  Acc=0.3636
+  Ep  40/80  train_loss=0.2240  F1=0.5333  Acc=0.3636
+  Ep  50/80  train_loss=0.2259  F1=0.5333  Acc=0.3636
+  Ep  60/80  train_loss=0.2238  F1=0.5333  Acc=0.3636
+  Ep  70/80  train_loss=0.2212  F1=0.5333  Acc=0.3636
+  Ep  80/80  train_loss=0.2221  F1=0.5333  Acc=0.3636
+  BiLSTM Youden threshold: 0.500
+  BiLSTM metrics: {'accuracy': 0.3636, 'precision': 0.3636, 'recall': 1.0, 'f1': 0.5333, 'auc': 0.3214, 'mcc': 0.0}
+
+=== STEP 5: All-star inference with 7-pass TTA ===
+  CNN predicted 51 planets / 60 stars
+  BiLSTM predicted 60 planets / 60 stars
+
+=== STEP 6: Explainability ===
+  Faithfulness=0.1818  Sparsity=0.2206  Consistency=0.7049
+  Top-3 features: ['in_out_noise_diff', 'transit_depth', 'bottom_flatness']
+
+=== STEP 7: Save artefacts ===
+
+=== STEP 8: Figures ===
+
+=== STEP 9: Per-star export ===
+  K00010.01      truth=planet  cnn=planet  conf=0.681  valid JSON
+  K00245.03      truth=planet  cnn=planet  conf=0.685  valid JSON
+  K00279.02      truth=planet  cnn=planet  conf=0.682  valid JSON
+  K00426.01      truth=planet  cnn=planet  conf=0.684  valid JSON
+  K00476.01      truth=planet  cnn=planet  conf=0.682  valid JSON
+  K00542.02      truth=planet  cnn=planet  conf=0.680  valid JSON
+  K00587.01      truth=planet  cnn=planet  conf=0.681  valid JSON
+  K00611.01      truth=planet  cnn=planet  conf=0.683  valid JSON
+  K00623.04      truth=planet  cnn=planet  conf=0.683  valid JSON
+  K00663.01      truth=planet  cnn=planet  conf=0.684  valid JSON
+  K00750.02      truth=planet  cnn=planet  conf=0.653  valid JSON
+  K00797.01      truth=planet  cnn=planet  conf=0.673  valid JSON
+  K00869.03      truth=planet  cnn=planet  conf=0.570  valid JSON
+  K00875.01      truth=planet  cnn=planet  conf=0.680  valid JSON
+  K01194.01      truth=planet  cnn=planet  conf=0.662  valid JSON
+  K01219.01      truth=fp      cnn=planet  conf=0.678  valid JSON  MISMATCH
+  K01614.01      truth=fp      cnn=planet  conf=0.682  valid JSON  MISMATCH
+  K01703.01      truth=fp      cnn=planet  conf=0.680  valid JSON  MISMATCH
+  K01732.01      truth=planet  cnn=planet  conf=0.674  valid JSON
+  K02011.02      truth=planet  cnn=planet  conf=0.680  valid JSON
+  K02012.01      truth=planet  cnn=planet  conf=0.674  valid JSON
+  K02023.01      truth=planet  cnn=planet  conf=0.676  valid JSON
+  K02147.02      truth=planet  cnn=planet  conf=0.685  valid JSON
+  K02191.01      truth=planet  cnn=planet  conf=0.616  valid JSON
+  K02192.01      truth=fp      cnn=planet  conf=0.687  valid JSON  MISMATCH
+  K02267.01      truth=fp      cnn=planet  conf=0.680  valid JSON  MISMATCH
+  K02539.01      truth=fp      cnn=planet  conf=0.684  valid JSON  MISMATCH
+  K02623.02      truth=planet  cnn=planet  conf=0.682  valid JSON
+  K03043.01      truth=planet  cnn=planet  conf=0.678  valid JSON
+  K03332.01      truth=fp      cnn=planet  conf=0.676  valid JSON  MISMATCH
+  K03497.01      truth=planet  cnn=planet  conf=0.617  valid JSON
+  K03540.01      truth=fp      cnn=fp      conf=0.281  valid JSON
+  K03591.01      truth=fp      cnn=fp      conf=0.391  valid JSON
+  K03771.01      truth=fp      cnn=fp      conf=0.290  valid JSON
+  K04205.01      truth=planet  cnn=planet  conf=0.681  valid JSON
+  K04352.01      truth=fp      cnn=planet  conf=0.543  valid JSON  MISMATCH
+  K04532.01      truth=fp      cnn=planet  conf=0.680  valid JSON  MISMATCH
+  K04587.01      truth=planet  cnn=planet  conf=0.682  valid JSON
+  K04767.01      truth=fp      cnn=planet  conf=0.678  valid JSON  MISMATCH
+  K04875.01      truth=planet  cnn=planet  conf=0.671  valid JSON
+  K05011.01      truth=fp      cnn=planet  conf=0.679  valid JSON  MISMATCH
+  K05114.01      truth=fp      cnn=planet  conf=0.675  valid JSON  MISMATCH
+  K05333.01      truth=planet  cnn=planet  conf=0.681  valid JSON
+  K05449.01      truth=fp      cnn=planet  conf=0.678  valid JSON  MISMATCH
+  K06035.01      truth=fp      cnn=fp      conf=0.369  valid JSON
+  K06084.01      truth=fp      cnn=fp      conf=0.413  valid JSON
+  K06166.02      truth=planet  cnn=planet  conf=0.575  valid JSON
+  K06273.01      truth=fp      cnn=planet  conf=0.663  valid JSON  MISMATCH
+  K06590.01      truth=fp      cnn=planet  conf=0.680  valid JSON  MISMATCH
+  K06694.01      truth=fp      cnn=planet  conf=0.683  valid JSON  MISMATCH
+  K06713.01      truth=fp      cnn=fp      conf=0.244  valid JSON
+  K06767.01      truth=fp      cnn=planet  conf=0.662  valid JSON  MISMATCH
+  K06772.01      truth=fp      cnn=planet  conf=0.674  valid JSON  MISMATCH
+  K06893.01      truth=fp      cnn=fp      conf=0.200  valid JSON
+  K06903.01      truth=fp      cnn=planet  conf=0.669  valid JSON  MISMATCH
+  K06910.01      truth=fp      cnn=fp      conf=0.200  valid JSON
+  K06925.01      truth=planet  cnn=planet  conf=0.682  valid JSON
+  K07101.01      truth=fp      cnn=planet  conf=0.566  valid JSON  MISMATCH
+  K07405.01      truth=fp      cnn=planet  conf=0.660  valid JSON  MISMATCH
+  K07740.01      truth=fp      cnn=fp      conf=0.180  valid JSON
+
+=== SUMMARY ===
+  Logistic Regression      Acc=0.636  F1=0.667  AUC=0.607
+  Decision Tree            Acc=0.727  F1=0.667  AUC=0.679
+  KNN                      Acc=0.636  F1=0.667  AUC=0.643
+  SVM                      Acc=0.545  F1=0.615  AUC=0.571
+  Random Forest            Acc=0.545  F1=0.615  AUC=0.643
+  Extra Trees              Acc=0.545  F1=0.615  AUC=0.500
+  MLP                      Acc=0.636  F1=0.667  AUC=0.571
+  XGBoost                  Acc=0.545  F1=0.615  AUC=0.536
+  LightGBM                 Acc=0.727  F1=0.727  AUC=0.643
+  Stacking Ensemble        Acc=0.636  F1=0.667  AUC=0.714
+  DualView CNN             Acc=0.455  F1=0.571  AUC=0.393
+  BiLSTM                   Acc=0.364  F1=0.533  AUC=0.321
+
+  Results -> F:\thesis\Thesis project\results/
+  Models  -> F:\thesis\Thesis project\saved_models/
+======================================================================
+elapsed: 50.8 min
+result payloads returned: 60
+json files written       : 60
+model files              : ['bilstm.pt', 'cnn_dualview.pt', 'manifest.json', 'xgboost.json']
+=== REAL RUN OK ===

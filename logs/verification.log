@@ -1,0 +1,562 @@
+==============================================================================
+EXOPLANET - full verification run
+started : 2026-09-30T19:24:31
+python  : 3.14.4
+project : F:\thesis\Thesis project
+==============================================================================
+
+------------------------------------------------------------------------------
+STEP: py_compile
+cmd : C:\Python314\python.exe -X utf8 -m py_compile pipeline.py
+------------------------------------------------------------------------------
+RESULT: py_compile -> PASS
+
+------------------------------------------------------------------------------
+STEP: sanity
+cmd : C:\Python314\python.exe -X utf8 C:\Users\redwa\AppData\Local\Temp\opencode\sanity1.py
+------------------------------------------------------------------------------
+  === import OK ===
+  TORCH_AVAILABLE : True
+  SMOTE_AVAILABLE : True
+  LGBM_AVAILABLE  : True
+  OPTUNA_AVAILABLE: True
+  SHAP_AVAILABLE  : True
+  SEQ_LEN / LOCAL : 2000 200
+  CNN_EPOCHS      : 80
+  TTA_PASSES/NOISE: 7 0.001
+  
+  phase_fold      : shape (2000,) median 1.0000
+    depth at phase 0      = 0.9800 (notebook convention, expect ~0.98)
+    epoch-anchored depth at phase 0.5 = 0.9800 (expect ~0.98)
+  bin_phase_curve : shape (2000,) variance 0.000011 (must be > 0; it was 0.0 before the fix)
+    depth at centre = 0.9800
+  
+  preprocess      : shape (2000,) len == SEQ_LEN: True
+  extract_features: n = 30 (expect 30)
+  feature_matrix  : (3, 30) names[:5] ['transit_depth', 'transit_duration', 'snr', 'even_odd_diff', 'centroid_skew']
+  extract_local_view: shape (200,) (expect 200,)
+  
+  find_optimal_threshold: 0.500 (expect 0.30, min 0.5 cap)
+  safe_metrics(None) -> {'accuracy': None, 'precision': None, 'recall': None, 'f1': None, 'auc': None, 'pr_auc': None, 'mcc': None, 'bal_acc': None, 'cv_f1_mean': None, 'cv_f1_std': None, 'tp': None, 'fp': None, 'fn': None, 'tn': None}
+  _sanitize of nan/inf -> {'a': None, 'b': None}
+  
+  build_result_dict:
+    label      = unknown (expect unknown)
+    prediction = planet (expect planet, from cnn_pred)
+    xgbConf    = None (expect None)
+    cnnConf    = 0.83
+  host_group(K00001.01   , K00001.02   ) = True
+  host_group(K00001.01   , K00002.01   ) = False
+  host_group(TIC 1234    , TIC-1234    ) = True
+  
+  === ALL SANITY CHECKS DONE ===
+RESULT: sanity -> PASS
+
+------------------------------------------------------------------------------
+STEP: smoke_balanced
+cmd : C:\Python314\python.exe -X utf8 C:\Users\redwa\AppData\Local\Temp\opencode\smoke_test.py
+------------------------------------------------------------------------------
+  === running full pipeline on 13 synthetic targets ===
+  === STEP 1: Data collection ===
+    [K01000.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=planet
+    [K01001.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=planet
+    [K01002.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=planet
+    [K01003.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=planet
+    [K01004.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=planet
+    [K01005.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=planet
+    [K01006.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01007.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01008.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01009.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01010.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01011.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K09000.01]
+    Using columns: time='phase', flux='flux', label='label'
+    label 'candidate' is not determinate - treated as unknown.
+      label=unknown
+      SKIPPED: archive label is not determinate - cannot be used for supervised training or honest accuracy reporting.
+    note: K09000.01 excluded (label=unknown)
+  
+    Samples: 12  planets: 6  non-planets: 6  host stars: 12  pos_weight=1.00
+    Train: 8  Val: 2  Test: 2
+    Test host stars: ['K01005', 'K01010']
+    SMOTE: 8 -> 8 training samples
+  
+  === STEP 2: Tabular models ===
+    Tuning XGBoost with Optuna (25 trials)...
+      Optuna XGB best F1=0.389  params={'max_depth': 3, 'lr': 0.057532041236250865, 'n_estimators': 483, 'subsample': 0.8916028672163949, 'col_bt': 0.8856351733429728, 'alpha': 0.07404465173409036, 'lambda': 1.3961643213606816, 'mcw': 1, 'gamma': 0.43155171293779676}
+    Tuning Random Forest with RandomizedSearchCV...
+      RS best F1=0.389  params={'n_estimators': 400, 'min_samples_leaf': 3, 'max_features': 'log2', 'max_depth': 12}
+    Tuning Extra Trees with RandomizedSearchCV...
+      RS best F1=0.167  params={'n_estimators': 600, 'min_samples_leaf': 1, 'max_features': 'log2'}
+    Tuning LightGBM with Optuna (25 trials)...
+      Optuna LGBM best F1=0.267  params={'n_estimators': 350, 'max_depth': 7, 'lr': 0.044803926826840625, 'num_leaves': 44, 'mcs': 3, 'subsample': 0.662397808134481, 'col_bt': 0.5290418060840998}
+    Building StackingClassifier meta-ensemble...
+  
+    Model                    Accuracy Precision   Recall       F1      AUC   PR-AUC   BalAcc     MCC     CV F1/    std    Thr
+    ------------------------------------------------------------------------------------------------------------------------------
+      Logistic Regression        0.0000    0.0000   0.0000   0.0000   0.0000   0.5000   0.0000  -1.000    0.0000/ 0.0000  0.500
+      Decision Tree              0.0000    0.0000   0.0000   0.0000   0.0000   0.5000   0.0000  -1.000    0.0000/ 0.0000  0.500
+      KNN                        0.5000    0.0000   0.0000   0.0000   0.0000   0.5000   0.5000   0.000    0.0000/ 0.0000  0.500
+      SVM                        1.0000    1.0000   1.0000   1.0000   1.0000   1.0000   1.0000   1.000    0.3333/ 0.4216  0.500
+      Random Forest              0.5000    0.5000   1.0000   0.6667   0.0000   0.5000   0.5000   0.000    0.4000/ 0.3266  0.500
+      Extra Trees                0.0000    0.0000   0.0000   0.0000   0.0000   0.5000   0.0000  -1.000    0.1333/ 0.2667  0.500
+      MLP                        1.0000    1.0000   1.0000   1.0000   1.0000   1.0000   1.0000   1.000    0.0000/ 0.0000  0.500
+      XGBoost                    0.5000    0.5000   1.0000   0.6667   0.5000   0.5000   0.5000   0.000    0.4000/ 0.3266  0.500
+      LightGBM                   0.0000    0.0000   0.0000   0.0000   0.0000   0.5000   0.0000  -1.000    0.4000/ 0.4899  0.500
+      Stacking Ensemble          1.0000    1.0000   1.0000   1.0000   1.0000   1.0000   1.0000   1.000    0.0000/ 0.0000  0.500
+  
+    Held-out test evaluation (validation thresholds, never re-tuned):
+      Logistic Regression      Acc=1.0000  F1=1.0000  (thr=0.500)
+      Decision Tree            Acc=1.0000  F1=1.0000  (thr=0.500)
+      KNN                      Acc=0.5000  F1=0.0000  (thr=0.500)
+      SVM                      Acc=0.5000  F1=0.0000  (thr=0.500)
+      Random Forest            Acc=1.0000  F1=1.0000  (thr=0.500)
+      Extra Trees              Acc=1.0000  F1=1.0000  (thr=0.500)
+      MLP                      Acc=1.0000  F1=1.0000  (thr=0.500)
+      XGBoost                  Acc=0.5000  F1=0.6667  (thr=0.500)
+      LightGBM                 Acc=1.0000  F1=1.0000  (thr=0.500)
+      Stacking Ensemble        Acc=0.0000  F1=0.0000  (thr=0.500)
+  
+  === STEP 3: DualView CNN ===
+    DualViewCNN trainable params: 156,634
+    CNN Youden threshold: 0.500  (best val F1 0.6667)
+    CNN metrics: {'accuracy': 0.5, 'precision': 0.5, 'recall': 1.0, 'f1': 0.6667, 'auc': 0.5, 'mcc': 0.0}
+  
+  === STEP 4: BiLSTM ===
+    BiLSTM trainable params: 150,339
+    BiLSTM Youden threshold: 0.500
+    BiLSTM metrics: {'accuracy': 0.5, 'precision': 0.5, 'recall': 1.0, 'f1': 0.6667, 'auc': 0.5, 'mcc': 0.0}
+  
+  === STEP 5: All-star inference with 7-pass TTA ===
+    CNN predicted 12 planets / 12 stars
+    BiLSTM predicted 12 planets / 12 stars
+  
+  === STEP 6: Explainability ===
+    Faithfulness=0.0  Sparsity=1.0  Consistency=1.0
+    Top-3 features: ['transit_depth', 'transit_duration', 'snr']
+  
+  === STEP 7: Save artefacts ===
+  
+  === STEP 8: Figures ===
+  
+  === STEP 9: Per-star export ===
+    K01000.01      truth=planet  cnn=planet  conf=0.509  valid JSON
+    K01001.01      truth=planet  cnn=planet  conf=0.509  valid JSON
+    K01002.01      truth=planet  cnn=planet  conf=0.509  valid JSON
+    K01003.01      truth=planet  cnn=planet  conf=0.509  valid JSON
+    K01004.01      truth=planet  cnn=planet  conf=0.509  valid JSON
+    K01005.01      truth=planet  cnn=planet  conf=0.509  valid JSON
+    K01006.01      truth=fp      cnn=planet  conf=0.509  valid JSON  MISMATCH
+    K01007.01      truth=fp      cnn=planet  conf=0.509  valid JSON  MISMATCH
+    K01008.01      truth=fp      cnn=planet  conf=0.509  valid JSON  MISMATCH
+    K01009.01      truth=fp      cnn=planet  conf=0.509  valid JSON  MISMATCH
+    K01010.01      truth=fp      cnn=planet  conf=0.509  valid JSON  MISMATCH
+    K01011.01      truth=fp      cnn=planet  conf=0.509  valid JSON  MISMATCH
+  
+  === SUMMARY ===
+    Logistic Regression      Acc=0.000  F1=0.000  AUC=0.000
+    Decision Tree            Acc=0.000  F1=0.000  AUC=0.000
+    KNN                      Acc=0.500  F1=0.000  AUC=0.000
+    SVM                      Acc=1.000  F1=1.000  AUC=1.000
+    Random Forest            Acc=0.500  F1=0.667  AUC=0.000
+    Extra Trees              Acc=0.000  F1=0.000  AUC=0.000
+    MLP                      Acc=1.000  F1=1.000  AUC=1.000
+    XGBoost                  Acc=0.500  F1=0.667  AUC=0.500
+    LightGBM                 Acc=0.000  F1=0.000  AUC=0.000
+    Stacking Ensemble        Acc=1.000  F1=1.000  AUC=1.000
+    DualView CNN             Acc=0.500  F1=0.667  AUC=0.500
+    BiLSTM                   Acc=0.500  F1=0.667  AUC=0.500
+  
+    Results -> C:\Users\redwa\AppData\Local\Temp\opencode\smoke\results/
+    Models  -> C:\Users\redwa\AppData\Local\Temp\opencode\smoke\models/
+  
+  === POST-RUN ASSERTIONS ===
+  results written : 12
+  json files      : 12
+  model files     : ['bilstm.pt', 'cnn_dualview.pt', 'manifest.json', 'xgboost.json']
+  metrics in json : cnn keys = ['accuracy', 'auc', 'bal_acc', 'cv_f1_mean', 'cv_f1_std', 'f1', 'fn', 'fp', 'mcc', 'pr_auc', 'precision', 'recall', 'tn', 'tp']
+  
+  === SMOKE TEST PASSED ===
+  [I 2026-09-30 19:24:44,957] A new study created in memory with name: no-name-03a32ac0-7434-46e3-86d8-1f55b65b9643
+  [I 2026-09-30 19:24:45,145] Trial 0 finished with value: 0.16666666666666666 and parameters: {'max_depth': 4, 'lr': 0.0862735828664018, 'n_estimators': 493, 'subsample': 0.8394633936788146, 'col_bt': 0.5780093202212182, 'alpha': 0.15599452033620265, 'lambda': 0.6452090304204987, 'mcw': 7, 'gamma': 0.3005575058716044}. Best is trial 0 with value: 0.16666666666666666.
+  [I 2026-09-30 19:24:45,355] Trial 1 finished with value: 0.16666666666666666 and parameters: {'max_depth': 6, 'lr': 0.005318033256270142, 'n_estimators': 588, 'subsample': 0.9329770563201687, 'col_bt': 0.6061695553391381, 'alpha': 0.18182496720710062, 'lambda': 0.9585112746335845, 'mcw': 3, 'gamma': 0.2623782158161189}. Best is trial 0 with value: 0.16666666666666666.
+  [I 2026-09-30 19:24:45,531] Trial 2 finished with value: 0.16666666666666666 and parameters: {'max_depth': 5, 'lr': 0.011963764382790322, 'n_estimators': 445, 'subsample': 0.6557975442608167, 'col_bt': 0.6460723242676091, 'alpha': 0.3663618432936917, 'lambda': 1.64017496054259, 'mcw': 6, 'gamma': 0.09983689107917987}. Best is trial 0 with value: 0.16666666666666666.
+  [I 2026-09-30 19:24:45,639] Trial 3 finished with value: 0.16666666666666666 and parameters: {'max_depth': 5, 'lr': 0.029493012052163467, 'n_estimators': 218, 'subsample': 0.8430179407605753, 'col_bt': 0.5852620618436457, 'alpha': 0.06505159298527952, 'lambda': 2.8722138431333333, 'mcw': 7, 'gamma': 0.40419867405823057}. Best is trial 0 with value: 0.16666666666666666.
+  [I 2026-09-30 19:24:45,819] Trial 4 finished with value: 0.16666666666666666 and parameters: {'max_depth': 4, 'lr': 0.006699530280754897, 'n_estimators': 474, 'subsample': 0.7760609974958406, 'col_bt': 0.5610191174223894, 'alpha': 0.4951769101112702, 'lambda': 0.585971302788046, 'mcw': 7, 'gamma': 0.12938999080000846}. Best is trial 0 with value: 0.16666666666666666.
+  [I 2026-09-30 19:24:45,982] Trial 5 finished with value: 0.16666666666666666 and parameters: {'max_depth': 6, 'lr': 0.012720830454691846, 'n_estimators': 408, 'subsample': 0.8186841117373118, 'col_bt': 0.5924272277627636, 'alpha': 0.9695846277645586, 'lambda': 2.4378320584027864, 'mcw': 7, 'gamma': 0.4474136752138244}. Best is trial 0 with value: 0.16666666666666666.
+  [I 2026-09-30 19:24:46,091] Trial 6 finished with value: 0.16666666666666666 and parameters: {'max_depth': 5, 'lr': 0.07913270952323785, 'n_estimators': 235, 'subsample': 0.6783931449676581, 'col_bt': 0.522613644455269, 'alpha': 0.32533033076326434, 'lambda': 1.471693224223705, 'mcw': 2, 'gamma': 0.41436875457596467}. Best is trial 0 with value: 0.16666666666666666.
+  [I 2026-09-30 19:24:46,256] Trial 7 finished with value: 0.16666666666666666 and parameters: {'max_depth': 4, 'lr': 0.011600433752378412, 'n_estimators': 417, 'subsample': 0.6563696899899051, 'col_bt': 0.9010984903770198, 'alpha': 0.07455064367977082, 'lambda': 2.9672173415012932, 'mcw': 6, 'gamma': 0.0993578407670862}. Best is trial 0 with value: 0.16666666666666666.
+  [I 2026-09-30 19:24:46,440] Trial 8 finished with value: 0.38888888888888884 and parameters: {'max_depth': 3, 'lr': 0.057532041236250865, 'n_estimators': 483, 'subsample': 0.8916028672163949, 'col_bt': 0.8856351733429728, 'alpha': 0.07404465173409036, 'lambda': 1.3961643213606816, 'mcw': 1, 'gamma': 0.43155171293779676}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:46,544] Trial 9 finished with value: 0.16666666666666666 and parameters: {'max_depth': 6, 'lr': 0.013473432786208842, 'n_estimators': 225, 'subsample': 0.7243929286862649, 'col_bt': 0.6625916610133735, 'alpha': 0.7296061783380641, 'lambda': 2.093893678388033, 'mcw': 7, 'gamma': 0.23610746258097465}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:46,724] Trial 10 finished with value: 0.38888888888888884 and parameters: {'max_depth': 4, 'lr': 0.026059848085203775, 'n_estimators': 495, 'subsample': 0.8715202756313167, 'col_bt': 0.8975271648661712, 'alpha': 0.2715823238234402, 'lambda': 2.645008184359146, 'mcw': 1, 'gamma': 0.39950374186134124}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:46,939] Trial 11 finished with value: 0.16666666666666666 and parameters: {'max_depth': 4, 'lr': 0.0482239001148658, 'n_estimators': 537, 'subsample': 0.8657003856385002, 'col_bt': 0.8691517630930399, 'alpha': 0.24741718267777596, 'lambda': 0.9158465174978156, 'mcw': 2, 'gamma': 0.32717348713863725}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:47,113] Trial 12 finished with value: 0.38888888888888884 and parameters: {'max_depth': 4, 'lr': 0.0663817747364826, 'n_estimators': 424, 'subsample': 0.8809976153878333, 'col_bt': 0.9080227434306594, 'alpha': 0.11683150321485497, 'lambda': 2.3530149748993523, 'mcw': 1, 'gamma': 0.34988009666919434}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:47,308] Trial 13 finished with value: 0.16666666666666666 and parameters: {'max_depth': 3, 'lr': 0.01740669156857702, 'n_estimators': 528, 'subsample': 0.9070466875640343, 'col_bt': 0.9351173946758109, 'alpha': 0.046161241915835434, 'lambda': 1.2642460654071264, 'mcw': 2, 'gamma': 0.4294590231422597}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:47,511] Trial 14 finished with value: 0.16666666666666666 and parameters: {'max_depth': 5, 'lr': 0.05765984611793069, 'n_estimators': 532, 'subsample': 0.8687543115101817, 'col_bt': 0.9957700427645324, 'alpha': 0.2793674968763312, 'lambda': 2.3284858625527196, 'mcw': 2, 'gamma': 0.4151442548714017}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:47,698] Trial 15 finished with value: 0.38888888888888884 and parameters: {'max_depth': 5, 'lr': 0.05580663470144886, 'n_estimators': 483, 'subsample': 0.7816577369618598, 'col_bt': 0.9138419828275853, 'alpha': 0.10412071613355309, 'lambda': 0.965828450970748, 'mcw': 1, 'gamma': 0.4416601643464512}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:47,897] Trial 16 finished with value: 0.38888888888888884 and parameters: {'max_depth': 3, 'lr': 0.05492031201024525, 'n_estimators': 532, 'subsample': 0.9348633983763862, 'col_bt': 0.8595954901351972, 'alpha': 0.4765778069400137, 'lambda': 2.338858976672146, 'mcw': 1, 'gamma': 0.29571849575367093}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:48,079] Trial 17 finished with value: 0.38888888888888884 and parameters: {'max_depth': 3, 'lr': 0.019183420006796303, 'n_estimators': 527, 'subsample': 0.8253599512016531, 'col_bt': 0.8106905110257044, 'alpha': 0.3951816527544373, 'lambda': 1.5386405782463919, 'mcw': 1, 'gamma': 0.49196954838520557}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:48,258] Trial 18 finished with value: 0.16666666666666666 and parameters: {'max_depth': 3, 'lr': 0.06326849367266534, 'n_estimators': 494, 'subsample': 0.883154345835686, 'col_bt': 0.8620764588876826, 'alpha': 0.1710861246669386, 'lambda': 1.7399106997675853, 'mcw': 2, 'gamma': 0.22482384236118708}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:48,449] Trial 19 finished with value: 0.38888888888888884 and parameters: {'max_depth': 4, 'lr': 0.01863416668598988, 'n_estimators': 554, 'subsample': 0.8229679522212728, 'col_bt': 0.8897797522579061, 'alpha': 0.037730152639948944, 'lambda': 2.278833133573517, 'mcw': 1, 'gamma': 0.4716267615088371}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:48,599] Trial 20 finished with value: 0.38888888888888884 and parameters: {'max_depth': 3, 'lr': 0.05743469271810665, 'n_estimators': 405, 'subsample': 0.9876713776960573, 'col_bt': 0.8508589461308556, 'alpha': 0.173766244590204, 'lambda': 0.5506695192731195, 'mcw': 1, 'gamma': 0.44392594707442584}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:48,779] Trial 21 finished with value: 0.38888888888888884 and parameters: {'max_depth': 4, 'lr': 0.03575152917993454, 'n_estimators': 533, 'subsample': 0.8813365420988217, 'col_bt': 0.8344980893176757, 'alpha': 0.1484467017107357, 'lambda': 2.764833574486051, 'mcw': 1, 'gamma': 0.4407186746963637}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:48,953] Trial 22 finished with value: 0.38888888888888884 and parameters: {'max_depth': 4, 'lr': 0.0278077645407597, 'n_estimators': 423, 'subsample': 0.9099183003614175, 'col_bt': 0.9841347405609921, 'alpha': 0.16203730589439058, 'lambda': 1.7657847362587813, 'mcw': 1, 'gamma': 0.3420457094214937}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:49,117] Trial 23 finished with value: 0.38888888888888884 and parameters: {'max_depth': 3, 'lr': 0.036159255167579375, 'n_estimators': 458, 'subsample': 0.8754720638946183, 'col_bt': 0.8928707279223117, 'alpha': 0.009263853122062224, 'lambda': 0.9279777221110361, 'mcw': 1, 'gamma': 0.36750314714716775}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:24:49,281] Trial 24 finished with value: 0.16666666666666666 and parameters: {'max_depth': 3, 'lr': 0.07214594273087964, 'n_estimators': 430, 'subsample': 0.9014102367819126, 'col_bt': 0.9112600894731919, 'alpha': 0.1242931763908843, 'lambda': 2.614649517288335, 'mcw': 2, 'gamma': 0.38303534835206854}. Best is trial 8 with value: 0.38888888888888884.
+  [I 2026-09-30 19:25:10,916] A new study created in memory with name: no-name-e32f7354-c0ed-41c7-8362-87a5831be793
+  [I 2026-09-30 19:25:12,700] Trial 0 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 350, 'max_depth': 7, 'lr': 0.044803926826840625, 'num_leaves': 44, 'mcs': 3, 'subsample': 0.662397808134481, 'col_bt': 0.5290418060840998}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:12,734] Trial 1 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 547, 'max_depth': 6, 'lr': 0.04170553216181044, 'num_leaves': 16, 'mcs': 10, 'subsample': 0.9329770563201687, 'col_bt': 0.6061695553391381}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:12,764] Trial 2 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 272, 'max_depth': 3, 'lr': 0.012439367209907218, 'num_leaves': 40, 'mcs': 5, 'subsample': 0.7164916560792167, 'col_bt': 0.8059264473611898}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:12,794] Trial 3 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 255, 'max_depth': 4, 'lr': 0.014983654548550792, 'num_leaves': 37, 'mcs': 9, 'subsample': 0.6798695128633439, 'col_bt': 0.7571172192068059}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:12,845] Trial 4 finished with value: 0.16666666666666666 and parameters: {'n_estimators': 437, 'max_depth': 3, 'lr': 0.030860579740535368, 'num_leaves': 23, 'mcs': 2, 'subsample': 0.9795542149013333, 'col_bt': 0.9828160165372797}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:12,878] Trial 5 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 524, 'max_depth': 4, 'lr': 0.006699530280754897, 'num_leaves': 48, 'mcs': 5, 'subsample': 0.6488152939379115, 'col_bt': 0.7475884550556351}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:12,903] Trial 6 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 213, 'max_depth': 7, 'lr': 0.010855517271883068, 'num_leaves': 47, 'mcs': 4, 'subsample': 0.8080272084711243, 'col_bt': 0.7733551396716398}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:12,933] Trial 7 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 274, 'max_depth': 7, 'lr': 0.050984839695857445, 'num_leaves': 61, 'mcs': 10, 'subsample': 0.8391599915244341, 'col_bt': 0.9609371175115584}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:12,962] Trial 8 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 235, 'max_depth': 3, 'lr': 0.005725482134163321, 'num_leaves': 30, 'mcs': 5, 'subsample': 0.7085396127095583, 'col_bt': 0.9143687545759647}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:12,992] Trial 9 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 343, 'max_depth': 4, 'lr': 0.025411709798607296, 'num_leaves': 21, 'mcs': 9, 'subsample': 0.6298202574719083, 'col_bt': 0.9934434683002586}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,054] Trial 10 finished with value: 0.16666666666666666 and parameters: {'n_estimators': 330, 'max_depth': 6, 'lr': 0.09063680524930631, 'num_leaves': 44, 'mcs': 2, 'subsample': 0.8685075459270867, 'col_bt': 0.6038094208107588}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,089] Trial 11 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 472, 'max_depth': 7, 'lr': 0.08967624204211318, 'num_leaves': 28, 'mcs': 9, 'subsample': 0.7099484017951943, 'col_bt': 0.5778421149165247}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,125] Trial 12 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 592, 'max_depth': 6, 'lr': 0.05960669745320851, 'num_leaves': 18, 'mcs': 10, 'subsample': 0.8362466466238035, 'col_bt': 0.6224013868315287}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,174] Trial 13 finished with value: 0.16666666666666666 and parameters: {'n_estimators': 309, 'max_depth': 7, 'lr': 0.0475097181570186, 'num_leaves': 60, 'mcs': 2, 'subsample': 0.6769603486924796, 'col_bt': 0.5315834716678886}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,207] Trial 14 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 375, 'max_depth': 6, 'lr': 0.04637279701555017, 'num_leaves': 24, 'mcs': 4, 'subsample': 0.9124916696087662, 'col_bt': 0.6422618612837242}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,241] Trial 15 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 554, 'max_depth': 6, 'lr': 0.045857145660115235, 'num_leaves': 37, 'mcs': 10, 'subsample': 0.9048247444588218, 'col_bt': 0.6971570976112198}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,284] Trial 16 finished with value: 0.16666666666666666 and parameters: {'n_estimators': 233, 'max_depth': 7, 'lr': 0.052570561406170786, 'num_leaves': 54, 'mcs': 2, 'subsample': 0.8354756280015476, 'col_bt': 0.623712088801301}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,321] Trial 17 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 426, 'max_depth': 7, 'lr': 0.06578717820892471, 'num_leaves': 27, 'mcs': 6, 'subsample': 0.6052803043942712, 'col_bt': 0.5555879237629424}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,441] Trial 18 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 581, 'max_depth': 6, 'lr': 0.04242491908408404, 'num_leaves': 32, 'mcs': 8, 'subsample': 0.9982472119437555, 'col_bt': 0.5520346705049977}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,485] Trial 19 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 553, 'max_depth': 7, 'lr': 0.03852283195967455, 'num_leaves': 39, 'mcs': 7, 'subsample': 0.8446238630219048, 'col_bt': 0.5065701578589041}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,537] Trial 20 finished with value: 0.16666666666666666 and parameters: {'n_estimators': 226, 'max_depth': 7, 'lr': 0.03535072284690293, 'num_leaves': 42, 'mcs': 2, 'subsample': 0.6917154699174065, 'col_bt': 0.6120050880644838}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,586] Trial 21 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 540, 'max_depth': 7, 'lr': 0.05154743308689003, 'num_leaves': 44, 'mcs': 3, 'subsample': 0.6455724282811314, 'col_bt': 0.5125549583188846}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,624] Trial 22 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 318, 'max_depth': 7, 'lr': 0.07773754982724766, 'num_leaves': 45, 'mcs': 4, 'subsample': 0.624961943145361, 'col_bt': 0.5985920952003141}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,659] Trial 23 finished with value: 0.26666666666666666 and parameters: {'n_estimators': 339, 'max_depth': 7, 'lr': 0.06532256546323113, 'num_leaves': 42, 'mcs': 4, 'subsample': 0.7230002716940171, 'col_bt': 0.5014205725858887}. Best is trial 0 with value: 0.26666666666666666.
+  [I 2026-09-30 19:25:13,707] Trial 24 finished with value: 0.16666666666666666 and parameters: {'n_estimators': 286, 'max_depth': 6, 'lr': 0.053249935332612165, 'num_leaves': 37, 'mcs': 2, 'subsample': 0.800723266725344, 'col_bt': 0.5355490682436933}. Best is trial 0 with value: 0.26666666666666666.
+RESULT: smoke_balanced -> PASS
+
+------------------------------------------------------------------------------
+STEP: smoke_imbalanced
+cmd : C:\Python314\python.exe -X utf8 C:\Users\redwa\AppData\Local\Temp\opencode\smoke_imbalanced.py
+------------------------------------------------------------------------------
+  === running full pipeline on 26 synthetic targets ===
+  === STEP 1: Data collection ===
+    [K01000.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=planet
+    [K01001.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=planet
+    [K01002.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=planet
+    [K01003.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=planet
+    [K01004.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=planet
+    [K01005.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01006.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01007.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01008.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01009.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01010.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01011.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01012.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01013.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01014.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01015.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01016.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01017.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01018.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01019.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01020.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01021.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01022.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01023.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K01024.01]
+    Using columns: time='phase', flux='flux', label='label'
+      label=false_positive
+    [K09000.01]
+    Using columns: time='phase', flux='flux', label='label'
+    label 'candidate' is not determinate - treated as unknown.
+      label=unknown
+      SKIPPED: archive label is not determinate - cannot be used for supervised training or honest accuracy reporting.
+    note: K09000.01 excluded (label=unknown)
+  
+    Samples: 25  planets: 5  non-planets: 20  host stars: 25  pos_weight=4.00
+    Train: 16  Val: 5  Test: 4
+    Test host stars: ['K01010', 'K01012', 'K01017', 'K01020']
+    SMOTE: 16 -> 26 training samples
+  
+  === STEP 2: Tabular models ===
+    Tuning XGBoost with Optuna (25 trials)...
+      Optuna XGB best F1=0.785  params={'max_depth': 3, 'lr': 0.057532041236250865, 'n_estimators': 483, 'subsample': 0.8916028672163949, 'col_bt': 0.8856351733429728, 'alpha': 0.07404465173409036, 'lambda': 1.3961643213606816, 'mcw': 1, 'gamma': 0.43155171293779676}
+    Tuning Random Forest with RandomizedSearchCV...
+      RS best F1=0.909  params={'n_estimators': 600, 'min_samples_leaf': 2, 'max_features': 'log2', 'max_depth': 12}
+    Tuning Extra Trees with RandomizedSearchCV...
+      RS best F1=0.933  params={'n_estimators': 300, 'min_samples_leaf': 1, 'max_features': 'sqrt'}
+    Tuning LightGBM with Optuna (25 trials)...
+      Optuna LGBM best F1=0.896  params={'n_estimators': 350, 'max_depth': 7, 'lr': 0.044803926826840625, 'num_leaves': 44, 'mcs': 3, 'subsample': 0.662397808134481, 'col_bt': 0.5290418060840998}
+    Building StackingClassifier meta-ensemble...
+  
+    Model                    Accuracy Precision   Recall       F1      AUC   PR-AUC   BalAcc     MCC     CV F1/    std    Thr
+    ------------------------------------------------------------------------------------------------------------------------------
+      Logistic Regression        0.8000    1.0000   0.5000   0.6667   0.5000   0.7000   0.7500   0.612    0.0000/ 0.0000  0.440
+      Decision Tree              0.2000    0.0000   0.0000   0.0000   0.1667   0.4000   0.1667  -0.667    0.0000/ 0.0000  0.500
+      KNN                        0.8000    1.0000   0.5000   0.6667   0.7500   0.7000   0.7500   0.612    0.0000/ 0.0000  0.312
+      SVM                        0.6000    0.5000   1.0000   0.6667   0.3333   0.4167   0.6667   0.408    0.0000/ 0.0000  0.127
+      Random Forest              0.8000    1.0000   0.5000   0.6667   0.5000   0.7000   0.7500   0.612    0.0000/ 0.0000  0.264
+      Extra Trees                0.6000    0.0000   0.0000   0.0000   0.1667   0.3667   0.5000   0.000    0.0000/ 0.0000  0.500
+      MLP                        0.8000    1.0000   0.5000   0.6667   0.5000   0.7000   0.7500   0.612    0.0000/ 0.0000  0.492
+      XGBoost                    0.8000    1.0000   0.5000   0.6667   0.5000   0.7000   0.7500   0.612    0.0000/ 0.0000  0.273
+      LightGBM                   0.6000    0.5000   1.0000   0.6667   0.5000   0.5000   0.6667   0.408    0.0000/ 0.0000  0.000
+      Stacking Ensemble          0.8000    1.0000   0.5000   0.6667   0.5000   0.7000   0.7500   0.612    0.4667/ 0.4000  0.193
+  
+    Held-out test evaluation (validation thresholds, never re-tuned):
+      Logistic Regression      Acc=0.5000  F1=0.0000  (thr=0.440)
+      Decision Tree            Acc=0.5000  F1=0.0000  (thr=0.500)
+      KNN                      Acc=0.7500  F1=0.0000  (thr=0.312)
+      SVM                      Acc=0.7500  F1=0.0000  (thr=0.127)
+      Random Forest            Acc=0.5000  F1=0.0000  (thr=0.264)
+      Extra Trees              Acc=1.0000  F1=0.0000  (thr=0.500)
+      MLP                      Acc=0.5000  F1=0.0000  (thr=0.492)
+      XGBoost                  Acc=0.5000  F1=0.0000  (thr=0.273)
+      LightGBM                 Acc=0.0000  F1=0.0000  (thr=0.000)
+      Stacking Ensemble        Acc=0.7500  F1=0.0000  (thr=0.193)
+  
+  === STEP 3: DualView CNN ===
+    DualViewCNN trainable params: 156,634
+    CNN Youden threshold: 0.500  (best val F1 0.5714)
+    CNN metrics: {'accuracy': 0.4, 'precision': 0.4, 'recall': 1.0, 'f1': 0.5714, 'auc': 0.25, 'mcc': 0.0}
+  
+  === STEP 4: BiLSTM ===
+    BiLSTM trainable params: 150,339
+    BiLSTM Youden threshold: 0.500
+    BiLSTM metrics: {'accuracy': 0.4, 'precision': 0.4, 'recall': 1.0, 'f1': 0.5714, 'auc': 0.25, 'mcc': 0.0}
+  
+  === STEP 5: All-star inference with 7-pass TTA ===
+    CNN predicted 25 planets / 25 stars
+    BiLSTM predicted 25 planets / 25 stars
+  
+  === STEP 6: Explainability ===
+    Faithfulness=0.0  Sparsity=0.452  Consistency=0.9668
+    Top-3 features: ['transit_symmetry', 'mean', 'transit_phase_shift']
+  
+  === STEP 7: Save artefacts ===
+  
+  === STEP 8: Figures ===
+  
+  === STEP 9: Per-star export ===
+    K01000.01      truth=planet  cnn=planet  conf=0.508  valid JSON
+    K01001.01      truth=planet  cnn=planet  conf=0.508  valid JSON
+    K01002.01      truth=planet  cnn=planet  conf=0.508  valid JSON
+    K01003.01      truth=planet  cnn=planet  conf=0.508  valid JSON
+    K01004.01      truth=planet  cnn=planet  conf=0.508  valid JSON
+    K01005.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01006.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01007.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01008.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01009.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01010.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01011.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01012.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01013.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01014.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01015.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01016.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01017.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01018.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01019.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01020.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01021.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01022.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01023.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+    K01024.01      truth=fp      cnn=planet  conf=0.508  valid JSON  MISMATCH
+  
+  === SUMMARY ===
+    Logistic Regression      Acc=0.800  F1=0.667  AUC=0.500
+    Decision Tree            Acc=0.200  F1=0.000  AUC=0.167
+    KNN                      Acc=0.800  F1=0.667  AUC=0.750
+    SVM                      Acc=0.600  F1=0.667  AUC=0.333
+    Random Forest            Acc=0.800  F1=0.667  AUC=0.500
+    Extra Trees              Acc=0.600  F1=0.000  AUC=0.167
+    MLP                      Acc=0.800  F1=0.667  AUC=0.500
+    XGBoost                  Acc=0.800  F1=0.667  AUC=0.500
+    LightGBM                 Acc=0.600  F1=0.667  AUC=0.500
+    Stacking Ensemble        Acc=0.800  F1=0.667  AUC=0.500
+    DualView CNN             Acc=0.400  F1=0.571  AUC=0.250
+    BiLSTM                   Acc=0.400  F1=0.571  AUC=0.250
+  
+    Results -> C:\Users\redwa\AppData\Local\Temp\opencode\smoke_imb\results/
+    Models  -> C:\Users\redwa\AppData\Local\Temp\opencode\smoke_imb\models/
+  
+  === POST-RUN ASSERTIONS ===
+  results written : 25
+  json files      : 25
+  model files     : ['bilstm.pt', 'cnn_dualview.pt', 'manifest.json', 'xgboost.json']
+  metrics in json : cnn keys = ['accuracy', 'auc', 'bal_acc', 'cv_f1_mean', 'cv_f1_std', 'f1', 'fn', 'fp', 'mcc', 'pr_auc', 'precision', 'recall', 'tn', 'tp']
+  
+  === IMBALANCED SMOKE TEST PASSED ===
+  [I 2026-09-30 19:27:04,554] A new study created in memory with name: no-name-a4515d15-d19e-42ec-8657-2c3680cd5608
+  [I 2026-09-30 19:27:04,733] Trial 0 finished with value: 0.6654456654456654 and parameters: {'max_depth': 4, 'lr': 0.0862735828664018, 'n_estimators': 493, 'subsample': 0.8394633936788146, 'col_bt': 0.5780093202212182, 'alpha': 0.15599452033620265, 'lambda': 0.6452090304204987, 'mcw': 7, 'gamma': 0.3005575058716044}. Best is trial 0 with value: 0.6654456654456654.
+  [I 2026-09-30 19:27:04,980] Trial 1 finished with value: 0.6654456654456654 and parameters: {'max_depth': 6, 'lr': 0.005318033256270142, 'n_estimators': 588, 'subsample': 0.9329770563201687, 'col_bt': 0.6061695553391381, 'alpha': 0.18182496720710062, 'lambda': 0.9585112746335845, 'mcw': 3, 'gamma': 0.2623782158161189}. Best is trial 0 with value: 0.6654456654456654.
+  [I 2026-09-30 19:27:05,134] Trial 2 finished with value: 0.6654456654456654 and parameters: {'max_depth': 5, 'lr': 0.011963764382790322, 'n_estimators': 445, 'subsample': 0.6557975442608167, 'col_bt': 0.6460723242676091, 'alpha': 0.3663618432936917, 'lambda': 1.64017496054259, 'mcw': 6, 'gamma': 0.09983689107917987}. Best is trial 0 with value: 0.6654456654456654.
+  [I 2026-09-30 19:27:05,217] Trial 3 finished with value: 0.6654456654456654 and parameters: {'max_depth': 5, 'lr': 0.029493012052163467, 'n_estimators': 218, 'subsample': 0.8430179407605753, 'col_bt': 0.5852620618436457, 'alpha': 0.06505159298527952, 'lambda': 2.8722138431333333, 'mcw': 7, 'gamma': 0.40419867405823057}. Best is trial 0 with value: 0.6654456654456654.
+  [I 2026-09-30 19:27:05,371] Trial 4 finished with value: 0.6654456654456654 and parameters: {'max_depth': 4, 'lr': 0.006699530280754897, 'n_estimators': 474, 'subsample': 0.7760609974958406, 'col_bt': 0.5610191174223894, 'alpha': 0.4951769101112702, 'lambda': 0.585971302788046, 'mcw': 7, 'gamma': 0.12938999080000846}. Best is trial 0 with value: 0.6654456654456654.
+  [I 2026-09-30 19:27:05,513] Trial 5 finished with value: 0.6654456654456654 and parameters: {'max_depth': 6, 'lr': 0.012720830454691846, 'n_estimators': 408, 'subsample': 0.8186841117373118, 'col_bt': 0.5924272277627636, 'alpha': 0.9695846277645586, 'lambda': 2.4378320584027864, 'mcw': 7, 'gamma': 0.4474136752138244}. Best is trial 0 with value: 0.6654456654456654.
+  [I 2026-09-30 19:27:05,615] Trial 6 finished with value: 0.7229437229437229 and parameters: {'max_depth': 5, 'lr': 0.07913270952323785, 'n_estimators': 235, 'subsample': 0.6783931449676581, 'col_bt': 0.522613644455269, 'alpha': 0.32533033076326434, 'lambda': 1.471693224223705, 'mcw': 2, 'gamma': 0.41436875457596467}. Best is trial 6 with value: 0.7229437229437229.
+  [I 2026-09-30 19:27:05,767] Trial 7 finished with value: 0.6654456654456654 and parameters: {'max_depth': 4, 'lr': 0.011600433752378412, 'n_estimators': 417, 'subsample': 0.6563696899899051, 'col_bt': 0.9010984903770198, 'alpha': 0.07455064367977082, 'lambda': 2.9672173415012932, 'mcw': 6, 'gamma': 0.0993578407670862}. Best is trial 6 with value: 0.7229437229437229.
+  [I 2026-09-30 19:27:05,931] Trial 8 finished with value: 0.7851851851851852 and parameters: {'max_depth': 3, 'lr': 0.057532041236250865, 'n_estimators': 483, 'subsample': 0.8916028672163949, 'col_bt': 0.8856351733429728, 'alpha': 0.07404465173409036, 'lambda': 1.3961643213606816, 'mcw': 1, 'gamma': 0.43155171293779676}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:06,014] Trial 9 finished with value: 0.6654456654456654 and parameters: {'max_depth': 6, 'lr': 0.013473432786208842, 'n_estimators': 225, 'subsample': 0.7243929286862649, 'col_bt': 0.6625916610133735, 'alpha': 0.7296061783380641, 'lambda': 2.093893678388033, 'mcw': 7, 'gamma': 0.23610746258097465}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:06,228] Trial 10 finished with value: 0.7851851851851852 and parameters: {'max_depth': 4, 'lr': 0.026059848085203775, 'n_estimators': 495, 'subsample': 0.8715202756313167, 'col_bt': 0.8975271648661712, 'alpha': 0.2715823238234402, 'lambda': 2.645008184359146, 'mcw': 1, 'gamma': 0.39950374186134124}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:06,434] Trial 11 finished with value: 0.7412587412587414 and parameters: {'max_depth': 4, 'lr': 0.0482239001148658, 'n_estimators': 537, 'subsample': 0.8657003856385002, 'col_bt': 0.8691517630930399, 'alpha': 0.24741718267777596, 'lambda': 0.9158465174978156, 'mcw': 2, 'gamma': 0.32717348713863725}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:06,584] Trial 12 finished with value: 0.7609427609427609 and parameters: {'max_depth': 4, 'lr': 0.0663817747364826, 'n_estimators': 424, 'subsample': 0.8809976153878333, 'col_bt': 0.9080227434306594, 'alpha': 0.11683150321485497, 'lambda': 2.3530149748993523, 'mcw': 1, 'gamma': 0.34988009666919434}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:06,782] Trial 13 finished with value: 0.7655011655011655 and parameters: {'max_depth': 3, 'lr': 0.01740669156857702, 'n_estimators': 528, 'subsample': 0.9070466875640343, 'col_bt': 0.9351173946758109, 'alpha': 0.046161241915835434, 'lambda': 1.2642460654071264, 'mcw': 2, 'gamma': 0.4294590231422597}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:06,966] Trial 14 finished with value: 0.7655011655011655 and parameters: {'max_depth': 5, 'lr': 0.05765984611793069, 'n_estimators': 532, 'subsample': 0.8687543115101817, 'col_bt': 0.9957700427645324, 'alpha': 0.2793674968763312, 'lambda': 2.3284858625527196, 'mcw': 2, 'gamma': 0.4151442548714017}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:07,131] Trial 15 finished with value: 0.7609427609427609 and parameters: {'max_depth': 5, 'lr': 0.05580663470144886, 'n_estimators': 483, 'subsample': 0.7816577369618598, 'col_bt': 0.9138419828275853, 'alpha': 0.10412071613355309, 'lambda': 0.965828450970748, 'mcw': 1, 'gamma': 0.4416601643464512}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:07,314] Trial 16 finished with value: 0.7851851851851852 and parameters: {'max_depth': 3, 'lr': 0.05492031201024525, 'n_estimators': 532, 'subsample': 0.9348633983763862, 'col_bt': 0.8595954901351972, 'alpha': 0.4765778069400137, 'lambda': 2.338858976672146, 'mcw': 1, 'gamma': 0.29571849575367093}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:07,515] Trial 17 finished with value: 0.7609427609427609 and parameters: {'max_depth': 3, 'lr': 0.019183420006796303, 'n_estimators': 527, 'subsample': 0.8253599512016531, 'col_bt': 0.8106905110257044, 'alpha': 0.3951816527544373, 'lambda': 1.5386405782463919, 'mcw': 1, 'gamma': 0.49196954838520557}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:07,684] Trial 18 finished with value: 0.7655011655011655 and parameters: {'max_depth': 3, 'lr': 0.06326849367266534, 'n_estimators': 494, 'subsample': 0.883154345835686, 'col_bt': 0.8620764588876826, 'alpha': 0.1710861246669386, 'lambda': 1.7399106997675853, 'mcw': 2, 'gamma': 0.22482384236118708}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:07,923] Trial 19 finished with value: 0.7609427609427609 and parameters: {'max_depth': 4, 'lr': 0.01863416668598988, 'n_estimators': 554, 'subsample': 0.8229679522212728, 'col_bt': 0.8897797522579061, 'alpha': 0.037730152639948944, 'lambda': 2.278833133573517, 'mcw': 1, 'gamma': 0.4716267615088371}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:08,067] Trial 20 finished with value: 0.7851851851851852 and parameters: {'max_depth': 3, 'lr': 0.05743469271810665, 'n_estimators': 405, 'subsample': 0.9876713776960573, 'col_bt': 0.8508589461308556, 'alpha': 0.173766244590204, 'lambda': 0.5506695192731195, 'mcw': 1, 'gamma': 0.44392594707442584}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:08,255] Trial 21 finished with value: 0.7609427609427609 and parameters: {'max_depth': 4, 'lr': 0.03541983622458187, 'n_estimators': 533, 'subsample': 0.8813365420988217, 'col_bt': 0.8344980893176757, 'alpha': 0.14802423331794373, 'lambda': 2.764833574486051, 'mcw': 1, 'gamma': 0.44029461420869415}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:08,432] Trial 22 finished with value: 0.7655011655011655 and parameters: {'max_depth': 3, 'lr': 0.06365496334956167, 'n_estimators': 526, 'subsample': 0.9480989761920101, 'col_bt': 0.9115208071253632, 'alpha': 0.3865867834081145, 'lambda': 2.17410365782339, 'mcw': 2, 'gamma': 0.4443820682427915}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:08,638] Trial 23 finished with value: 0.7851851851851852 and parameters: {'max_depth': 4, 'lr': 0.022297372831606373, 'n_estimators': 515, 'subsample': 0.901120540304939, 'col_bt': 0.7857251065694977, 'alpha': 0.3678547069173487, 'lambda': 2.27020791082473, 'mcw': 1, 'gamma': 0.3594953888322666}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:08,821] Trial 24 finished with value: 0.7412587412587414 and parameters: {'max_depth': 3, 'lr': 0.06410920804490511, 'n_estimators': 518, 'subsample': 0.9370286002376177, 'col_bt': 0.8784078713129172, 'alpha': 0.38733502411621645, 'lambda': 2.611845284701114, 'mcw': 2, 'gamma': 0.3382304039286772}. Best is trial 8 with value: 0.7851851851851852.
+  [I 2026-09-30 19:27:30,119] A new study created in memory with name: no-name-78d3d281-b12d-4c0e-ade3-7a222b89da0f
+  [I 2026-09-30 19:27:30,198] Trial 0 finished with value: 0.8962962962962964 and parameters: {'n_estimators': 350, 'max_depth': 7, 'lr': 0.044803926826840625, 'num_leaves': 44, 'mcs': 3, 'subsample': 0.662397808134481, 'col_bt': 0.5290418060840998}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,234] Trial 1 finished with value: 0.2380952380952381 and parameters: {'n_estimators': 547, 'max_depth': 6, 'lr': 0.04170553216181044, 'num_leaves': 16, 'mcs': 10, 'subsample': 0.9329770563201687, 'col_bt': 0.6061695553391381}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,287] Trial 2 finished with value: 0.872053872053872 and parameters: {'n_estimators': 272, 'max_depth': 3, 'lr': 0.012439367209907218, 'num_leaves': 40, 'mcs': 5, 'subsample': 0.7164916560792167, 'col_bt': 0.8059264473611898}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,319] Trial 3 finished with value: 0.5047619047619047 and parameters: {'n_estimators': 255, 'max_depth': 4, 'lr': 0.014983654548550792, 'num_leaves': 37, 'mcs': 9, 'subsample': 0.6798695128633439, 'col_bt': 0.7571172192068059}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,390] Trial 4 finished with value: 0.8350168350168351 and parameters: {'n_estimators': 437, 'max_depth': 3, 'lr': 0.030860579740535368, 'num_leaves': 23, 'mcs': 2, 'subsample': 0.9795542149013333, 'col_bt': 0.9828160165372797}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,476] Trial 5 finished with value: 0.872053872053872 and parameters: {'n_estimators': 524, 'max_depth': 4, 'lr': 0.006699530280754897, 'num_leaves': 48, 'mcs': 5, 'subsample': 0.6488152939379115, 'col_bt': 0.7475884550556351}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,532] Trial 6 finished with value: 0.7887205387205386 and parameters: {'n_estimators': 213, 'max_depth': 7, 'lr': 0.010855517271883068, 'num_leaves': 47, 'mcs': 4, 'subsample': 0.8080272084711243, 'col_bt': 0.7733551396716398}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,559] Trial 7 finished with value: 0.2380952380952381 and parameters: {'n_estimators': 274, 'max_depth': 7, 'lr': 0.050984839695857445, 'num_leaves': 61, 'mcs': 10, 'subsample': 0.8391599915244341, 'col_bt': 0.9609371175115584}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,605] Trial 8 finished with value: 0.8257575757575758 and parameters: {'n_estimators': 235, 'max_depth': 3, 'lr': 0.005725482134163321, 'num_leaves': 30, 'mcs': 5, 'subsample': 0.7085396127095583, 'col_bt': 0.9143687545759647}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,637] Trial 9 finished with value: 0.4805194805194805 and parameters: {'n_estimators': 343, 'max_depth': 4, 'lr': 0.025411709798607296, 'num_leaves': 21, 'mcs': 9, 'subsample': 0.6298202574719083, 'col_bt': 0.9934434683002586}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,721] Trial 10 finished with value: 0.8350168350168351 and parameters: {'n_estimators': 330, 'max_depth': 6, 'lr': 0.09063680524930631, 'num_leaves': 44, 'mcs': 2, 'subsample': 0.8685075459270867, 'col_bt': 0.6038094208107588}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,801] Trial 11 finished with value: 0.872053872053872 and parameters: {'n_estimators': 411, 'max_depth': 7, 'lr': 0.06923930694853382, 'num_leaves': 47, 'mcs': 3, 'subsample': 0.6148391351530612, 'col_bt': 0.5846353866422734}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,872] Trial 12 finished with value: 0.872053872053872 and parameters: {'n_estimators': 378, 'max_depth': 7, 'lr': 0.06969229501392962, 'num_leaves': 43, 'mcs': 3, 'subsample': 0.7519655022114617, 'col_bt': 0.8956904062724801}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:30,948] Trial 13 finished with value: 0.8592592592592592 and parameters: {'n_estimators': 402, 'max_depth': 7, 'lr': 0.016017018746859884, 'num_leaves': 44, 'mcs': 4, 'subsample': 0.7029665991302496, 'col_bt': 0.5282715934453908}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:31,025] Trial 14 finished with value: 0.7887205387205386 and parameters: {'n_estimators': 319, 'max_depth': 3, 'lr': 0.015070991315831114, 'num_leaves': 41, 'mcs': 4, 'subsample': 0.7701978682672441, 'col_bt': 0.960688390481209}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:31,094] Trial 15 finished with value: 0.8350168350168351 and parameters: {'n_estimators': 247, 'max_depth': 7, 'lr': 0.06854199766975894, 'num_leaves': 54, 'mcs': 2, 'subsample': 0.6795365424497721, 'col_bt': 0.6192359630706479}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:31,155] Trial 16 finished with value: 0.8350168350168351 and parameters: {'n_estimators': 282, 'max_depth': 6, 'lr': 0.024621573940903082, 'num_leaves': 38, 'mcs': 5, 'subsample': 0.6269376756618017, 'col_bt': 0.5341205443261308}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:31,247] Trial 17 finished with value: 0.872053872053872 and parameters: {'n_estimators': 360, 'max_depth': 4, 'lr': 0.02445767315536857, 'num_leaves': 54, 'mcs': 3, 'subsample': 0.7667698433310002, 'col_bt': 0.6219374804317841}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:31,392] Trial 18 finished with value: 0.8350168350168351 and parameters: {'n_estimators': 370, 'max_depth': 4, 'lr': 0.09677994138872463, 'num_leaves': 39, 'mcs': 5, 'subsample': 0.6847974300930969, 'col_bt': 0.6238542756512301}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:31,465] Trial 19 finished with value: 0.8425925925925926 and parameters: {'n_estimators': 391, 'max_depth': 6, 'lr': 0.055486851179422376, 'num_leaves': 40, 'mcs': 4, 'subsample': 0.6022333485623645, 'col_bt': 0.763344539619259}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:31,543] Trial 20 finished with value: 0.8592592592592592 and parameters: {'n_estimators': 234, 'max_depth': 7, 'lr': 0.026910635373921472, 'num_leaves': 44, 'mcs': 2, 'subsample': 0.6547145032111998, 'col_bt': 0.7094147993948307}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:31,622] Trial 21 finished with value: 0.797979797979798 and parameters: {'n_estimators': 565, 'max_depth': 4, 'lr': 0.005197300683765147, 'num_leaves': 50, 'mcs': 6, 'subsample': 0.6784923082637169, 'col_bt': 0.7284919277345628}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:31,678] Trial 22 finished with value: 0.8257575757575758 and parameters: {'n_estimators': 298, 'max_depth': 3, 'lr': 0.006973118598720637, 'num_leaves': 43, 'mcs': 5, 'subsample': 0.7206758415993154, 'col_bt': 0.664814128399442}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:31,740] Trial 23 finished with value: 0.797979797979798 and parameters: {'n_estimators': 341, 'max_depth': 4, 'lr': 0.010521106249755859, 'num_leaves': 51, 'mcs': 6, 'subsample': 0.609523821047968, 'col_bt': 0.8722297080040892}. Best is trial 0 with value: 0.8962962962962964.
+  [I 2026-09-30 19:27:31,809] Trial 24 finished with value: 0.812962962962963 and parameters: {'n_estimators': 331, 'max_depth': 3, 'lr': 0.018702051622798612, 'num_leaves': 35, 'mcs': 4, 'subsample': 0.6178436352545694, 'col_bt': 0.7708058992905645}. Best is trial 0 with value: 0.8962962962962964.
+RESULT: smoke_imbalanced -> PASS
+
+------------------------------------------------------------------------------
+STEP: inference
+cmd : C:\Python314\python.exe -X utf8 C:\Users\redwa\AppData\Local\Temp\opencode\infer_test.py
+------------------------------------------------------------------------------
+  === inference with label unknown (live-usage path) ===
+    LIVE-STAR: CNN=0.509 (thr 0.500)  BiLSTM=0.505  -> C:\Users\redwa\AppData\Local\Temp\opencode\smoke\infer\LIVE-STAR.json  valid JSON
+  
+  === metrics reused from the training manifest ===
+    cnn.accuracy  : 0.5
+    xgb.accuracy  : 0.5
+    cnnThreshold  : 0.5
+    prediction    : planet  cnnConf: 0.5085
+    LIVE-STAR-2: CNN=0.509 (thr 0.500)  BiLSTM=0.505  -> C:\Users\redwa\AppData\Local\Temp\opencode\smoke\infer\LIVE-STAR-2.json  valid JSON
+  
+    missing-artefact guard raised FileNotFoundError as expected
+  
+  json files written: ['LIVE-STAR-2.json', 'LIVE-STAR.json']
+  
+  === INFERENCE TEST PASSED ===
+RESULT: inference -> PASS
+
+------------------------------------------------------------------------------
+STEP: js_syntax
+cmd : C:\Python314\python.exe -X utf8 C:\Users\redwa\AppData\Local\Temp\opencode\check_js.py
+------------------------------------------------------------------------------
+  script blocks found: 1
+  block 0: 56276 chars -> OK
+RESULT: js_syntax -> PASS
+
+------------------------------------------------------------------------------
+STEP: js_behaviour
+cmd : node C:\Users\redwa\AppData\Local\Temp\opencode\proto_test.js
+------------------------------------------------------------------------------
+  === unit: cnnDecision resolution order ===
+  === unit: norm() never fabricates ===
+  === unit: formatters render em dash ===
+  === unit: label-derived live-NASA shape ===
+  === integration: real pipeline JSON ===
+    batch json: 12  inference json: 2
+  
+  === PROTOTYPE LOGIC TEST PASSED ===
+RESULT: js_behaviour -> PASS
+
+==============================================================================
+SUMMARY: 7/7 passed
+ALL CHECKS PASSED
+finished: 2026-09-30T19:29:46
+==============================================================================

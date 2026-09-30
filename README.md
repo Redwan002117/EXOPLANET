@@ -17,7 +17,9 @@ is a browser UI that renders the JSON produced by `pipeline.py`.
 | `server.py` | Local static server + NASA TAP proxy (avoids browser CORS). |
 | `requirements.txt` | Python dependencies. |
 | `results/` | Per-star result JSON. **Tracked in git.** |
-| `saved_models/` | Trained checkpoints and manifest. **Git-ignored.** |
+| `saved_models/` | Trained checkpoints and manifest. **Tracked in git.** |
+| `logs/` | Verification and training run output. |
+| `RESULTS.md` | What the trained models actually achieved, honestly. |
 
 Thesis write-ups are the `.docx` and `.pdf` files in the repository root.
 
@@ -92,9 +94,17 @@ model and reports its prediction and confidence as unknown.
 - `Thesis_Report.pdf` and `Technical_Documentation.pdf` are **stale**: they predate
   the corrections that made predictions model-derived and are out of sync with the
   current `.docx` files. Regenerate them before submission. The `.docx` files are current.
-- No trained models are committed. `results/` and `saved_models/` are empty in a fresh
-  clone; populate them by running a real training cycle.
-- Any metrics in a tracked `results/` JSON that came from a short smoke-test run
-  (very few stars, few epochs) are plumbing checks only and are not an accuracy claim.
-  A very small validation fold can legitimately produce AUC 0.0000 and MCC -1.000;
-  an *undefined* AUC is reported as 0.5 (chance), never as 0.0.
+- No trained models were committed until a real training run. `results/` now holds 60
+  real per-star JSONs and `saved_models/` the four trained artefacts. See
+  `RESULTS.md` for what those numbers do and do not support.
+- **The reported metrics are weak and the deep models are below chance.** LightGBM
+  (acc 0.727) is the best model; the CNN (AUC 0.393) and BiLSTM (AUC 0.321) rank
+  false positives above planets on held-out data. With 40 training stars and
+  ~150k parameters each, the deep models memorise rather than generalise. Do not
+  present these as a validated result — scale the dataset first.
+- **"planet" means KOI `CANDIDATE`, not a confirmed planet.** The authoritative
+  notebook treats `CANDIDATE` or `CONFIRMED` as `planet`, and the archive's
+  `cumulative` table contains no `CONFIRMED` rows at all. Preserved deliberately
+  to stay faithful to the notebook, but the label is softer than it sounds.
+- The all-star inference numbers in `results/` are **in-sample** and optimistic.
+  `RESULTS.md` marks which figures are held-out and which are not.
