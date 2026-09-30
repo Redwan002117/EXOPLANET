@@ -1,0 +1,2566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exoplanet Transit Detection — Results Viewer</title>
+<style>
+  :root {
+    --bg:#f0f4f8; --surface:#ffffff; --surface2:#f8fafc; --border:#e2e8f0;
+    --accent:#2563eb; --accent2:#7c3aed; --green:#059669; --red:#dc2626;
+    --yellow:#d97706; --cyan:#0891b2; --orange:#ea580c;
+    --text:#0f172a; --muted:#64748b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh;}
+
+  header{
+    background:linear-gradient(135deg,#1e3a8a 0%,#3730a3 100%);
+    border-bottom:1px solid #1e3a8a;padding:14px 24px;
+    display:flex;align-items:center;gap:14px;
+  }
+  .header-icon{font-size:24px;}
+  header h1{font-size:16px;font-weight:700;color:#fff;}
+  header p{font-size:11px;color:rgba(255,255,255,0.65);margin-top:2px;}
+  .badge{margin-left:auto;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.35);
+    color:#fff;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:600;}
+
+  .main{display:flex;height:calc(100vh - 57px);overflow:hidden;}
+
+  /* ── Sidebar ── */
+  .sidebar{
+    width:260px;min-width:260px;background:var(--surface);
+    border-right:1px solid var(--border);overflow-y:hidden;padding:14px;
+    display:flex;flex-direction:column;gap:0;position:relative;
+  }
+  .sidebar-sticky{
+    flex-shrink:0;display:flex;flex-direction:column;gap:12px;
+    padding-bottom:12px;
+  }
+  .sidebar-scroll{
+    flex:1;overflow-y:auto;padding-top:4px;
+    min-height:0;/* required for flex child to scroll */
+  }
+  .sidebar-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;}
+
+  .drop-zone{
+    border:2px dashed var(--border);border-radius:10px;padding:20px 12px;
+    text-align:center;cursor:pointer;transition:all 0.2s;position:relative;
+  }
+  .drop-zone:hover,.drop-zone.drag-over{border-color:var(--green);background:rgba(16,185,129,0.06);}
+  .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+  .drop-icon{font-size:24px;}
+  .drop-text{font-size:12px;color:var(--muted);margin-top:5px;}
+  .drop-text strong{color:var(--green);}
+  .drop-hint{font-size:10px;color:var(--muted);margin-top:3px;}
+
+  /* ── NASA fetch ── */
+  .fetch-row{display:flex;gap:5px;}
+  .fetch-input{
+    flex:1;background:var(--surface2);border:1px solid var(--border);
+    border-radius:7px;padding:7px 9px;color:var(--text);font-size:12px;
+    outline:none;transition:border-color 0.15s;
+  }
+  .fetch-input:focus{border-color:var(--accent);}
+  .fetch-input::placeholder{color:var(--muted);}
+  .fetch-btn{
+    background:var(--accent);border:none;border-radius:7px;
+    padding:7px 11px;color:white;font-size:12px;font-weight:700;
+    cursor:pointer;transition:opacity 0.15s;white-space:nowrap;
+  }
+  .fetch-btn:hover{opacity:0.85;}
+  .fetch-btn:disabled{opacity:0.45;cursor:not-allowed;}
+  .fetch-status{
+    font-size:11px;padding:6px 9px;border-radius:6px;margin-top:5px;display:none;
+  }
+  .fetch-status.ok{background:rgba(16,185,129,0.1);color:var(--green);border:1px solid rgba(16,185,129,0.3);display:block;}
+  .fetch-status.err{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.3);display:block;}
+  .fetch-status.loading{background:rgba(59,130,246,0.1);color:var(--accent);border:1px solid rgba(59,130,246,0.3);display:block;}
+  .fetch-hint{font-size:10px;color:var(--muted);line-height:1.5;margin-top:4px;}
+  .divider{border:none;border-top:1px solid var(--border);margin:2px 0;}
+
+  .result-list{display:flex;flex-direction:column;gap:4px;}
+  .result-btn{
+    background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+    padding:8px 10px;cursor:pointer;text-align:left;color:var(--text);
+    transition:all 0.15s;display:flex;align-items:center;gap:8px;
+  }
+  .result-btn:hover{border-color:var(--accent);background:rgba(59,130,246,0.08);}
+  .result-btn.active{border-color:var(--accent);background:rgba(59,130,246,0.15);}
+  .result-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .result-info{flex:1;min-width:0;}
+  .result-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .result-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+  .tag{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;white-space:nowrap;}
+  .tag-planet{background:rgba(16,185,129,0.2);color:var(--green);border:1px solid rgba(16,185,129,0.3);}
+  .tag-fp{background:rgba(239,68,68,0.2);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
+  .tag-unk{background:rgba(245,158,11,0.2);color:var(--yellow);border:1px solid rgba(245,158,11,0.3);}
+  .tag-pred-planet{background:rgba(16,185,129,0.12);color:var(--green);}
+  .tag-pred-false{background:rgba(239,68,68,0.12);color:var(--red);}
+
+  /* ── Content ── */
+  .content{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:16px;}
+
+  /* Welcome screen */
+  .welcome{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:16px;text-align:center;
+  }
+  .welcome-icon{font-size:48px;}
+  .welcome h2{font-size:18px;font-weight:700;color:var(--text);}
+  .welcome p{font-size:13px;color:var(--muted);max-width:380px;line-height:1.6;}
+  .welcome-steps{display:flex;flex-direction:column;gap:8px;text-align:left;margin-top:8px;}
+  .welcome-step{
+    display:flex;align-items:flex-start;gap:10px;
+    background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;
+  }
+  .step-num{
+    width:22px;height:22px;border-radius:50%;background:var(--accent);
+    color:white;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .step-text{font-size:12px;color:var(--muted);line-height:1.5;}
+  .step-text strong{color:var(--text);}
+
+  /* Cards */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+  .card-header{
+    display:flex;align-items:center;gap:8px;padding:11px 16px;
+    border-bottom:1px solid var(--border);background:var(--surface2);
+  }
+  .card-title{font-size:13px;font-weight:700;}
+  .card-sub{font-size:11px;color:var(--muted);margin-left:auto;}
+  .card-body{padding:16px;}
+
+  /* Info bar */
+  .info-bar{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;
+  }
+  .info-id{font-size:15px;font-weight:700;}
+  .info-chip{
+    background:var(--surface2);border:1px solid var(--border);border-radius:14px;
+    padding:3px 10px;font-size:11px;display:flex;align-items:center;gap:4px;
+  }
+  .info-chip span{color:var(--muted);}
+  .info-chip strong{color:var(--text);}
+  .label-badge{
+    padding:4px 12px;border-radius:14px;font-size:11px;font-weight:700;margin-left:auto;
+    display:flex;align-items:center;gap:5px;
+  }
+  .badge-planet{background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);color:var(--green);}
+  .badge-fp{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:var(--red);}
+  .badge-unk{background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);color:var(--yellow);}
+  .mismatch-banner{
+    width:100%;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:600;
+    background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);color:var(--yellow);
+    display:flex;align-items:center;gap:6px;
+  }
+
+  /* Light curve canvas */
+  canvas{display:block;width:100%;}
+  .gradcam-scale{display:flex;align-items:center;gap:7px;margin-top:7px;font-size:10px;color:var(--muted);}
+  .gradcam-bar{flex:1;height:6px;border-radius:3px;
+    background:linear-gradient(90deg,transparent,rgba(239,68,68,0.25),rgba(239,68,68,0.7),#f97316);}
+
+  /* Two-column results layout */
+  .results-row{display:grid;grid-template-columns:1fr 340px;gap:16px;}
+  @media(max-width:1100px){.results-row{grid-template-columns:1fr;}}
+
+  /* Model comparison table */
+  .model-table{width:100%;border-collapse:collapse;}
+  .model-table th{
+    text-align:left;padding:7px 10px;font-size:10px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+    border-bottom:1px solid var(--border);
+  }
+  .model-table th.right{text-align:right;}
+  .model-table td{padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border);}
+  .model-table tr:last-child td{border-bottom:none;}
+  .model-table tr:hover td{background:var(--surface2);}
+  .model-name{font-weight:600;}
+  .model-type-ml{color:var(--accent);}
+  .model-type-dl{color:var(--green);}
+  .model-type-base{color:var(--muted);}
+  .best{color:var(--green);font-weight:700;}
+  .metric-cell{text-align:right;font-variant-numeric:tabular-nums;}
+
+  /* Inline F1 bar */
+  .f1-cell{width:120px;padding:8px 10px 8px 0;}
+  .f1-wrap{display:flex;align-items:center;gap:7px;}
+  .f1-bar-bg{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+  .f1-bar{height:100%;border-radius:4px;transition:width 0.7s cubic-bezier(.4,0,.2,1);width:0;}
+  .f1-val{width:38px;text-align:right;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;}
+
+  /* Per-star prediction column */
+  .pred-cell{text-align:center;}
+  .pred-pill{
+    display:inline-flex;align-items:center;gap:4px;
+    padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;
+  }
+  .pred-p{background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3);}
+  .pred-f{background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
+  .pred-u{background:rgba(100,116,139,0.15);color:var(--muted);border:1px solid rgba(100,116,139,0.3);}
+  .conf-val{font-size:10px;color:var(--muted);margin-top:2px;text-align:center;}
+
+  /* Section divider inside table */
+  .model-divider td{
+    border-top:2px solid var(--border);padding-top:10px;font-size:10px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+  }
+
+  /* Right column panels */
+  .right-col{display:flex;flex-direction:column;gap:14px;}
+
+  /* SHAP bars */
+  .shap-bars{display:flex;flex-direction:column;gap:5px;margin-top:3px;}
+  .shap-row{display:flex;align-items:center;gap:7px;}
+  .shap-feat{width:100px;font-size:10px;color:var(--muted);text-align:right;flex-shrink:0;}
+  .shap-bar-wrap{flex:1;background:var(--border);border-radius:3px;height:14px;overflow:hidden;}
+  .shap-bar{height:100%;border-radius:3px;display:flex;align-items:center;padding:0 5px;
+    font-size:9px;font-weight:700;color:white;transition:width 0.8s cubic-bezier(.4,0,.2,1);width:0;}
+  .shap-pos{background:linear-gradient(90deg,#3b82f6,#6366f1);}
+  .shap-neg{background:linear-gradient(90deg,#ef4444,#ec4899);}
+
+  /* Explainability metric rows */
+  .expl-grid{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+  .expl-row{display:flex;align-items:center;gap:8px;}
+  .expl-label{font-size:11px;color:var(--muted);flex:1;}
+  .expl-val{font-size:12px;font-weight:700;width:52px;text-align:right;}
+  .expl-bar-bg{width:80px;height:7px;background:var(--border);border-radius:3px;overflow:hidden;flex-shrink:0;}
+  .expl-bar{height:100%;border-radius:3px;transition:width 0.7s cubic-bezier(.4,0,.2,1);width:0;}
+  .expl-note{font-size:9px;color:var(--muted);margin-top:2px;line-height:1.4;}
+
+  /* CNN metrics */
+  .cnn-metrics{display:flex;flex-direction:column;gap:7px;margin-top:3px;}
+  .cnn-row{display:flex;flex-direction:column;gap:2px;}
+  .cnn-label-row{display:flex;justify-content:space-between;margin-bottom:1px;}
+  .cnn-name{font-size:11px;}
+  .cnn-val{font-size:11px;font-weight:700;}
+  .cnn-bar-bg{background:var(--border);border-radius:3px;height:5px;overflow:hidden;}
+  .cnn-bar{height:100%;border-radius:3px;transition:width 0.7s cubic-bezier(.4,0,.2,1);width:0;}
+
+  .gradcam-note{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5;}
+
+  /* Visuals section */
+  .visuals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-top:4px;}
+  .vis-panel{background:var(--surface2);border:1px solid var(--border);border-radius:9px;overflow:hidden;
+    transition:box-shadow .2s;}
+  .vis-panel:hover{box-shadow:0 0 0 2px var(--accent);}
+  .vis-panel-header{padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:6px;}
+  .vis-expand-hint{margin-left:auto;font-size:9px;font-weight:400;letter-spacing:0;
+    color:var(--accent);text-transform:none;opacity:.7;}
+  .vis-panel img{width:100%;height:auto;display:block;cursor:zoom-in;transition:opacity .15s;}
+  .vis-panel img:hover{opacity:.88;}
+  .vis-nodata{padding:18px;text-align:center;font-size:11px;color:var(--muted);font-style:italic;}
+
+  /* Lightbox */
+  .lb-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .2s;}
+  .lb-overlay.lb-open{opacity:1;pointer-events:all;}
+  .lb-close{position:absolute;top:16px;right:20px;font-size:26px;line-height:1;
+    color:#fff;cursor:pointer;background:none;border:none;padding:4px 8px;
+    border-radius:6px;transition:background .15s;}
+  .lb-close:hover{background:rgba(255,255,255,.15);}
+  .lb-title{color:#fff;font-size:12px;font-weight:600;letter-spacing:.4px;
+    text-transform:uppercase;margin-bottom:12px;opacity:.75;}
+  .lb-img-wrap{max-width:92vw;max-height:85vh;overflow:auto;border-radius:8px;
+    box-shadow:0 8px 40px rgba(0,0,0,.6);}
+  .lb-img-wrap img{display:block;max-width:100%;height:auto;border-radius:8px;}
+
+  /* CNN mismatch warning */
+  .cnn-mismatch{margin-top:8px;padding:7px 11px;border-radius:6px;font-size:11px;font-weight:600;
+    background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:var(--yellow);
+    display:flex;align-items:center;gap:6px;}
+
+  ::-webkit-scrollbar{width:5px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}
+
+  /* ── Header nav buttons ─────────────────────────────────────────────────── */
+  .hdr-btn{
+    background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.3);
+    color:#fff;padding:5px 13px;border-radius:20px;font-size:11px;font-weight:600;
+    cursor:pointer;transition:background .15s;white-space:nowrap;margin-left:6px;
+    display:flex;align-items:center;gap:5px;
+  }
+  .hdr-btn:hover{background:rgba(255,255,255,0.22);}
+  .hdr-btn.active{background:rgba(255,255,255,0.28);border-color:#fff;}
+
+  /* ── Docs full view ─────────────────────────────────────────────────────── */
+  #docsView{display:none;position:fixed;top:57px;left:260px;right:0;bottom:0;z-index:100;overflow:hidden;background:var(--bg);width:auto;height:auto;}
+  #docsView.visible{display:flex;}
+  .docs-layout{display:flex;width:100%;height:100%;overflow:hidden;}
+  .docs-nav{
+    width:200px;min-width:200px;border-right:1px solid var(--border);
+    background:var(--surface);overflow-y:auto;padding:16px 0;
+  }
+  .docs-nav-title{
+    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+    color:var(--muted);padding:0 16px 10px;
+  }
+  .docs-nav a{
+    display:block;padding:7px 16px;font-size:12px;color:var(--muted);
+    text-decoration:none;border-left:2px solid transparent;transition:all .15s;
+  }
+  .docs-nav a:hover{color:var(--text);background:var(--surface2);}
+  .docs-nav a.active{color:var(--accent);border-left-color:var(--accent);background:rgba(37,99,235,0.07);}
+  .docs-nav .nav-section{
+    font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+    color:var(--border);padding:12px 16px 4px;
+  }
+  .docs-content{
+    flex:1;overflow-y:auto;padding:32px 48px;max-width:860px;
+  }
+  .docs-content h1{font-size:22px;font-weight:800;margin-bottom:6px;color:var(--text);}
+  .docs-content h2{font-size:16px;font-weight:700;margin:36px 0 12px;padding-top:8px;color:var(--text);
+    border-top:1px solid var(--border);}
+  .docs-content h2:first-of-type{margin-top:20px;border-top:none;}
+  .docs-content h3{font-size:13px;font-weight:700;margin:20px 0 8px;color:var(--text);}
+  .docs-content p{font-size:13px;line-height:1.7;color:#334155;margin-bottom:12px;}
+  .docs-content ul,ol{font-size:13px;line-height:1.8;color:#334155;padding-left:20px;margin-bottom:12px;}
+  .docs-content li{margin-bottom:3px;}
+  .docs-content code{
+    background:#f1f5f9;border:1px solid var(--border);border-radius:4px;
+    padding:1px 6px;font-size:11px;font-family:monospace;color:#0f172a;
+  }
+  .docs-content pre{
+    background:#0f172a;border-radius:8px;padding:16px;overflow-x:auto;
+    margin:12px 0;font-size:11px;line-height:1.6;color:#e2e8f0;
+  }
+  .docs-content pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit;}
+  .docs-lede{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+  .docs-badge{
+    display:inline-block;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:700;
+    margin:0 3px 4px 0;
+  }
+  .docs-badge-blue{background:rgba(37,99,235,0.1);color:var(--accent);border:1px solid rgba(37,99,235,0.25);}
+  .docs-badge-green{background:rgba(5,150,105,0.1);color:var(--green);border:1px solid rgba(5,150,105,0.25);}
+  .docs-badge-purple{background:rgba(124,58,237,0.1);color:var(--accent2);border:1px solid rgba(124,58,237,0.25);}
+
+  /* Pipeline diagram */
+  .pipeline{display:flex;flex-direction:column;gap:0;margin:16px 0;}
+  .pipe-row{display:flex;align-items:stretch;gap:0;}
+  .pipe-box{
+    background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;
+    padding:10px 14px;font-size:11px;font-weight:600;color:var(--text);
+    min-width:130px;text-align:center;flex-shrink:0;
+  }
+  .pipe-box.blue{background:rgba(37,99,235,0.08);border-color:rgba(37,99,235,0.3);color:var(--accent);}
+  .pipe-box.green{background:rgba(5,150,105,0.08);border-color:rgba(5,150,105,0.3);color:var(--green);}
+  .pipe-box.purple{background:rgba(124,58,237,0.08);border-color:rgba(124,58,237,0.3);color:var(--accent2);}
+  .pipe-box.orange{background:rgba(234,88,12,0.08);border-color:rgba(234,88,12,0.3);color:var(--orange);}
+  .pipe-box small{display:block;font-weight:400;font-size:10px;color:var(--muted);margin-top:2px;}
+  .pipe-arrow{
+    display:flex;align-items:center;justify-content:center;
+    width:36px;flex-shrink:0;font-size:16px;color:var(--muted);
+  }
+  .pipe-branch{display:flex;gap:8px;flex:1;}
+
+  /* Metric table */
+  .metric-def-table{width:100%;border-collapse:collapse;margin:10px 0;}
+  .metric-def-table th{
+    text-align:left;padding:7px 12px;font-size:10px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.5px;color:var(--muted);
+    background:var(--surface2);border-bottom:2px solid var(--border);
+  }
+  .metric-def-table td{
+    padding:9px 12px;font-size:12px;border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  .metric-def-table tr:last-child td{border-bottom:none;}
+  .metric-def-table .mname{font-weight:700;color:var(--text);white-space:nowrap;}
+  .metric-def-table .mrange{color:var(--muted);font-size:10px;white-space:nowrap;}
+  .metric-def-table .mdesc{color:#475569;line-height:1.5;}
+
+  /* Step list */
+  .step-list{display:flex;flex-direction:column;gap:10px;margin:12px 0;}
+  .step-item{
+    display:flex;gap:12px;align-items:flex-start;
+    background:var(--surface2);border:1px solid var(--border);
+    border-radius:8px;padding:12px 14px;
+  }
+  .step-num2{
+    width:24px;height:24px;border-radius:50%;background:var(--accent);
+    color:#fff;font-size:11px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+  }
+  .step-body strong{display:block;font-size:12px;margin-bottom:3px;color:var(--text);}
+  .step-body span{font-size:11px;color:var(--muted);line-height:1.5;}
+
+  /* Callout boxes */
+  .callout{border-radius:8px;padding:12px 16px;margin:14px 0;font-size:12px;line-height:1.6;}
+  .callout-blue{background:rgba(37,99,235,0.07);border:1px solid rgba(37,99,235,0.2);color:#1e40af;}
+  .callout-green{background:rgba(5,150,105,0.07);border:1px solid rgba(5,150,105,0.2);color:#065f46;}
+  .callout-yellow{background:rgba(217,119,6,0.07);border:1px solid rgba(217,119,6,0.2);color:#92400e;}
+  .callout strong{font-weight:700;}
+
+  /* ── Quick-reference drawer ─────────────────────────────────────────────── */
+  .drawer-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:800;
+    opacity:0;pointer-events:none;transition:opacity .22s;
+  }
+  .drawer-overlay.open{opacity:1;pointer-events:all;}
+  .drawer-panel{
+    position:fixed;top:0;right:0;bottom:0;width:400px;max-width:90vw;
+    background:var(--surface);border-left:1px solid var(--border);
+    z-index:801;overflow-y:auto;padding:0;
+    transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;
+  }
+  .drawer-overlay.open .drawer-panel{transform:translateX(0);}
+  .drawer-header{
+    position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--border);
+    padding:14px 18px;display:flex;align-items:center;gap:10px;z-index:1;
+  }
+  .drawer-header h3{font-size:14px;font-weight:700;flex:1;}
+  .drawer-close{
+    background:none;border:1px solid var(--border);border-radius:6px;
+    padding:4px 10px;cursor:pointer;font-size:13px;color:var(--muted);
+    transition:all .15s;
+  }
+  .drawer-close:hover{background:var(--border);}
+  .drawer-body{padding:16px 18px;display:flex;flex-direction:column;gap:20px;}
+  .drawer-section h4{
+    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+    color:var(--muted);margin-bottom:8px;
+  }
+  .qref-table{width:100%;border-collapse:collapse;font-size:11px;}
+  .qref-table tr:not(:last-child) td{border-bottom:1px solid var(--border);}
+  .qref-table td{padding:6px 8px;vertical-align:top;line-height:1.4;}
+  .qref-table .qname{font-weight:700;color:var(--text);width:105px;}
+  .qref-table .qdesc{color:var(--muted);}
+  .shortcut-list{display:flex;flex-direction:column;gap:5px;}
+  .shortcut-row{display:flex;align-items:center;gap:8px;font-size:11px;}
+  .shortcut-key{
+    background:var(--surface2);border:1px solid var(--border);border-radius:4px;
+    padding:2px 7px;font-family:monospace;font-size:11px;color:var(--text);
+    white-space:nowrap;
+  }
+  .shortcut-desc{color:var(--muted);}
+  .drawer-full-link{
+    display:block;text-align:center;padding:9px;border-radius:7px;
+    background:var(--accent);color:#fff;font-size:12px;font-weight:700;
+    text-decoration:none;cursor:pointer;border:none;width:100%;
+    transition:opacity .15s;
+  }
+  .drawer-full-link:hover{opacity:.85;}
+
+  /* Star info grid (for live-fetched NASA stars) */
+  .star-info-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;padding:14px 16px;
+  }
+  .si-card{
+    background:var(--surface2);border:1px solid var(--border);border-radius:9px;
+    padding:10px 14px;display:flex;flex-direction:column;gap:3px;
+  }
+  .si-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600;}
+  .si-value{font-size:14px;font-weight:700;color:var(--text);}
+  .si-unit{font-size:10px;color:var(--muted);margin-left:2px;}
+  .si-na{color:var(--muted);font-style:italic;font-weight:400;font-size:12px;}
+  .live-note{
+    margin:0 16px 14px;font-size:11px;color:var(--cyan);
+    background:rgba(8,145,178,0.06);border:1px solid rgba(8,145,178,0.2);
+    border-radius:7px;padding:7px 12px;line-height:1.6;
+  }
+</style>
+</head>
+<body>
+
+<!-- Lightbox overlay -->
+<div class="lb-overlay" id="lbOverlay" onclick="lbClose(event)">
+  <button class="lb-close" onclick="lbHide()" title="Close (Esc)">✕</button>
+  <div class="lb-title" id="lbTitle"></div>
+  <div class="lb-img-wrap"><img id="lbImg" src="" alt=""></div>
+</div>
+
+<header>
+  <div class="header-icon">🔭</div>
+  <div>
+    <h1>Exoplanet Transit Detection — Results Viewer</h1>
+    <p>Traditional ML + 1D Convolutional Deep Networks · IUBAT CSC 488 Thesis</p>
+  </div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+    <a href="https://colab.research.google.com/" target="_blank"
+       style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.3);
+              color:#fff;padding:4px 13px;border-radius:20px;font-size:11px;font-weight:600;
+              text-decoration:none;display:flex;align-items:center;gap:6px;">
+      <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Colab" style="height:16px;">
+      Open Notebook
+    </a>
+    <button class="hdr-btn" id="docsBtn" onclick="toggleDocs()" title="Documentation">📚 Docs</button>
+    <button class="hdr-btn" id="helpBtn" onclick="openDrawer()" title="Quick Reference">? Help</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- ── Sidebar ── -->
+  <div class="sidebar">
+
+    <!-- Sticky top: Load + Fetch sections -->
+    <div class="sidebar-sticky">
+      <div>
+        <div class="sidebar-label">Load Results</div>
+        <div class="drop-zone" id="dropZone"
+             ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)">
+          <input type="file" accept=".json" multiple onchange="onFileSelected(event)">
+          <div class="drop-icon">📂</div>
+          <div class="drop-text"><strong>Click or drag</strong> JSON files here</div>
+          <div class="drop-hint">Output from <strong>exoplanet_colab.ipynb</strong><br>
+            <a href="https://colab.research.google.com/" target="_blank"
+               style="color:var(--accent);font-size:10px;text-decoration:none;">↗ Open Google Colab</a></div>
+        </div>
+      </div>
+
+      <hr class="divider" style="margin:10px 0;">
+
+      <!-- NASA direct fetch -->
+      <div>
+        <div class="sidebar-label">Fetch by ID (NASA Archive)</div>
+        <div class="fetch-row">
+          <input class="fetch-input" id="fetchInput" placeholder="K00755.01 or TIC 394137592"
+                 onkeydown="if(event.key==='Enter')fetchById()">
+          <button class="fetch-btn" id="fetchBtn" onclick="fetchById()">Fetch</button>
+        </div>
+        <div class="fetch-status" id="fetchStatus"></div>
+        <div class="fetch-hint">
+          KOI: <strong>K00755.01</strong> &nbsp;·&nbsp; TESS: <strong>TIC 394137592</strong><br>
+          Fetches live from NASA Exoplanet Archive — no server needed.
+        </div>
+      </div>
+
+      <hr class="divider" style="margin:10px 0;">
+    </div>
+
+    <!-- Scrollable results list -->
+    <div class="sidebar-scroll">
+      <div id="resultsSection" style="display:none;">
+        <div class="sidebar-label" id="resultsCount">Loaded Results</div>
+        <div class="result-list" id="resultList"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Main content ── -->
+  <div class="content" id="mainContent">
+
+    <!-- Welcome screen -->
+    <div class="welcome" id="welcomeScreen">
+      <div class="welcome-icon">🪐</div>
+      <h2>Load Colab Results to Begin</h2>
+      <p>Run <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;">exoplanet_colab.ipynb</code> in Google Colab, download the JSON files, then drag them into the sidebar.</p>
+      <div class="welcome-steps">
+        <div class="welcome-step">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Run the Colab notebook</strong> — Cell 1 through Cell 10 processes your Kepler/TESS targets and exports one JSON per star.</div>
+        </div>
+        <div class="welcome-step">
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Download the JSON files</strong> — Cell 10 auto-downloads them, or use Cell 11 for a zip of everything.</div>
+        </div>
+        <div class="welcome-step">
+          <div class="step-num">3</div>
+          <div class="step-text"><strong>Drag the JSONs here</strong> — drop them on the sidebar upload zone. Click any star to see its full results.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results view (hidden until JSON loaded) -->
+    <div id="resultsView" style="display:none;display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Info bar -->
+      <!-- Dataset disclaimer banner -->
+      <div id="disclaimerBanner" style="display:none;margin:0 0 0 0;padding:7px 16px;background:#fef3c7;border-bottom:1px solid #f59e0b;font-size:11px;color:#92400e;line-height:1.5;gap:8px;align-items:flex-start;flex-wrap:wrap;">
+        <strong>⚠ Small-dataset notice:</strong> Results are based on a limited curated dataset. Perfect or near-perfect scores (100% accuracy, F1) should not be interpreted as evidence of real-world generalisation — they reflect the small, homogeneous sample size. Expand the dataset and use grouped cross-validation before drawing conclusions.
+      </div>
+      <div class="info-bar" id="infoBar">
+        <div class="info-id" id="infoId">—</div>
+        <div class="info-chip"><span>Mission</span><strong id="infoMission">—</strong></div>
+        <div class="info-chip"><span>Points</span><strong id="infoPoints">—</strong></div>
+        <div id="labelBadge" class="label-badge badge-unk">? Unknown</div>
+        <div id="predBadge" class="label-badge badge-unk" style="margin-left:0">→ ?</div>
+        <span id="outcomeBadge" style="display:none;"></span>
+      </div>
+      <div id="mismatchBanner" style="display:none;" class="mismatch-banner">
+        ⚠ Model prediction differs from the archive label.
+        <span id="mismatchDetail" style="margin-left:auto;font-weight:400;font-size:10px;"></span>
+      </div>
+
+      <!-- Star information card (visible for live-fetched NASA stars) -->
+      <div class="card" id="starInfoCard" style="display:none;">
+        <div class="card-header">
+          <span>⭐</span>
+          <span class="card-title">Star &amp; Planet Parameters</span>
+          <span class="card-sub" id="starInfoSource">NASA Exoplanet Archive</span>
+        </div>
+        <div class="live-note" id="liveNote">📡 Live data from NASA TAP · Synthetic light curve generated from transit parameters · Run through Colab for full ML analysis</div>
+        <div class="star-info-grid" id="starInfoGrid"></div>
+      </div>
+
+      <!-- Light curve -->
+      <div class="card">
+        <div class="card-header">
+          <span>📈</span>
+          <span class="card-title">Phase-Folded Light Curve</span>
+          <span class="card-sub" id="lcSubtitle">Kepler · 2000 pts</span>
+          <span style="font-size:11px;color:var(--red);margin-left:8px;">● Grad-CAM overlay</span>
+        </div>
+        <div class="card-body" style="padding-bottom:8px;">
+          <canvas id="lcCanvas" height="160"></canvas>
+          <div class="gradcam-scale">
+            <span>CNN attention:</span>
+            <div class="gradcam-bar"></div>
+            <span>High (transit region)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two-column results -->
+      <div class="results-row">
+
+        <!-- Left: Model comparison -->
+        <div class="card">
+          <div class="card-header">
+            <span>🏆</span>
+            <span class="card-title">Model Comparison</span>
+            <span class="card-sub">Global test-set metrics · per-star prediction in last column</span>
+          </div>
+          <div class="card-body" style="padding:0 0 4px 0;overflow-x:auto;">
+            <table class="model-table" id="modelTable">
+              <thead>
+                <tr>
+                  <th style="width:24px;">#</th>
+                  <th>Model</th>
+                  <th class="right">Accuracy</th>
+                  <th class="right">Precision</th>
+                  <th class="right">Recall</th>
+                  <th class="right">AUC-ROC</th>
+                  <th class="right">MCC</th>
+                  <th>CV F1 ± σ</th>
+                  <th>F1 Score</th>
+                  <th class="right">This Star</th>
+                </tr>
+              </thead>
+              <tbody id="modelTableBody">
+                <tr><td colspan="10" style="text-align:center;padding:20px;color:var(--muted);">No data — drop a JSON from Colab</td></tr>
+              </tbody>
+            </table>
+            <div id="tableNote" style="font-size:10px;color:var(--muted);padding:6px 12px;">
+              <strong style="color:var(--text)">Accuracy / F1 / AUC are global model metrics</strong> — computed once on the held-out test set and are the same across all stars. <em style="color:var(--yellow)">⚠ On the small curated demonstration set (≤ 20 targets), scores of 1.000 reflect the well-separated nature of the sample and should not be interpreted as evidence of generalisation to unseen systems.</em>
+              Per-star prediction &amp; confidence are shown in the <em>This Star</em> column.
+              CV F1 = 5-fold cross-validation mean ± std.
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div class="right-col">
+
+          <!-- CNN metrics -->
+          <div class="card">
+            <div class="card-header">
+              <span>🧠</span>
+              <span class="card-title">DualView CNN</span>
+              <span class="card-sub" id="cnnConfText">—</span><span class="card-sub" style="margin-left:auto;font-size:9px;opacity:.6;">Val set — overall metrics</span>
+            </div>
+            <div class="card-body">
+              <div class="cnn-metrics" id="cnnMetrics"></div>
+              <div id="cnnPredBox" style="margin-top:10px;"></div>
+              <div class="gradcam-note" id="gradcamNote"></div>
+              <div style="margin-top:6px;font-size:10px;color:var(--muted);line-height:1.5;font-style:italic;">
+                ℹ Confidence = mean softmax over 7 TTA passes (noise σ=0.001). Raw softmax is not a calibrated probability — values near the decision threshold should be interpreted carefully. Optimal threshold set via Youden's J on the validation set.
+              </div>
+            </div>
+          </div>
+
+          <!-- BiLSTM metrics -->
+          <div class="card">
+            <div class="card-header">
+              <span>🔁</span>
+              <span class="card-title">BiLSTM + Attention</span>
+              <span class="card-sub" id="bilstmConfText">—</span><span class="card-sub" style="margin-left:auto;font-size:9px;opacity:.6;">Val set — overall metrics</span>
+            </div>
+            <div class="card-body">
+              <div class="cnn-metrics" id="bilstmMetrics"></div>
+              <div id="bilstmPredBox" style="margin-top:10px;"></div>
+              <div class="gradcam-note" id="bilstmNote"></div>
+              <div style="margin-top:6px;font-size:10px;color:var(--muted);line-height:1.5;font-style:italic;">
+                ℹ Bidirectional LSTM reads the phase-folded curve in both directions; a soft-attention head scores each time step and the weights double as a recurrent explainability map (like Grad-CAM, no external gradients needed). TTA confidence as above.
+              </div>
+            </div>
+          </div>
+
+          <!-- SHAP -->
+          <div class="card">
+            <div class="card-header">
+              <span>🔍</span>
+              <span class="card-title">SHAP — XGBoost Feature Importance</span>
+            </div>
+            <div class="card-body">
+              <div class="shap-bars" id="shapBars"></div>
+            </div>
+          </div>
+
+          <!-- Explainability metrics -->
+          <div class="card" id="explCard" style="display:none;">
+            <div class="card-header">
+              <span>📐</span>
+              <span class="card-title">Explainability Metrics</span>
+            </div>
+            <div class="card-body">
+              <div class="expl-grid" id="explGrid"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Visuals (Cell 5–9 plots embedded as base64) ── -->
+      <div class="card" id="visualsCard">
+        <div class="card-header">
+          <span>🖼</span>
+          <span class="card-title">Pipeline Visuals — Colab Cells 5–9</span>
+          <span class="card-sub">Preprocessed curves · SHAP summary · CNN training · Grad-CAM · Model comparison</span>
+        </div>
+        <div class="card-body">
+          <div class="visuals-grid" id="visualsGrid"></div>
+        </div>
+      </div>
+
+    </div><!-- /resultsView -->
+  </div><!-- /content -->
+</div>
+
+<!-- ── Docs full-page view ──────────────────────────────────────────────── -->
+<div id="docsView" class="docs-layout">
+  <!-- Left nav -->
+  <nav class="docs-nav">
+    <div class="docs-nav-title">Documentation</div>
+    <a href="#doc-about" onclick="docNav(this)">Overview</a>
+    <a href="#doc-quickstart" onclick="docNav(this)">Quick Start</a>
+    <div class="nav-section">Pipeline</div>
+    <a href="#doc-data" onclick="docNav(this)">Data Collection</a>
+    <a href="#doc-preprocess" onclick="docNav(this)">Preprocessing</a>
+    <a href="#doc-features" onclick="docNav(this)">Feature Extraction</a>
+    <a href="#doc-models" onclick="docNav(this)">ML Models</a>
+    <a href="#doc-cnn" onclick="docNav(this)">DualView CNN</a>
+    <a href="#doc-explainability" onclick="docNav(this)">Explainability</a>
+    <div class="nav-section">Results Guide</div>
+    <a href="#doc-results" onclick="docNav(this)">Reading Results</a>
+    <a href="#doc-metrics" onclick="docNav(this)">Metric Definitions</a>
+    <div class="nav-section">Reference</div>
+    <a href="#doc-data-sources" onclick="docNav(this)">Data Sources</a>
+    <a href="#doc-faq" onclick="docNav(this)">FAQ</a>
+  </nav>
+
+  <!-- Content -->
+  <div class="docs-content" id="docsContent">
+
+    <h1 id="doc-about">Exoplanet Transit Detection System</h1>
+    <p class="docs-lede">
+      A machine-learning pipeline for classifying Kepler and TESS light curves as exoplanet candidates
+      or false positives. Built for <strong>IUBAT CSC 488 Thesis</strong> — combining traditional
+      ML interpretability with deep-learning accuracy.
+    </p>
+    <p>
+      The system trains nine ML models (XGBoost, Random Forest, LightGBM, and more) plus a
+      dual-view 1D convolutional neural network on phase-folded photometric light curves from
+      NASA's MAST archive. Every prediction is explained via <strong>SHAP</strong> (for the
+      ensemble) and <strong>Grad-CAM</strong> (for the CNN).
+    </p>
+
+    <!-- Pipeline diagram -->
+    <div class="pipeline">
+      <div class="pipe-row">
+        <div class="pipe-box blue">NASA MAST<small>Kepler / TESS</small></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-box blue">Phase-Fold<small>per orbital period</small></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-box blue">Preprocess<small>SG filter · normalize · 2000 pts</small></div>
+      </div>
+      <div class="pipe-row" style="margin-top:8px;">
+        <div style="width:130px;"></div>
+        <div class="pipe-arrow" style="transform:rotate(90deg);width:130px;">↓</div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div class="pipe-box green">30 Features<small>transit shape · SNR · symmetry…</small></div>
+          <div style="display:flex;align-items:center;color:var(--muted);font-size:18px;">+</div>
+          <div class="pipe-box purple">DualViewCNN<small>global 2000pt + local 200pt</small></div>
+        </div>
+      </div>
+      <div class="pipe-row" style="margin-top:8px;">
+        <div style="width:260px;"></div>
+        <div class="pipe-arrow" style="transform:rotate(90deg);">↓</div>
+        <div style="display:flex;gap:8px;">
+          <div class="pipe-box green">9 ML Models<small>+ stacking ensemble · SHAP</small></div>
+          <div style="display:flex;align-items:center;color:var(--muted);font-size:18px;">+</div>
+          <div class="pipe-box purple">Grad-CAM<small>activation map</small></div>
+        </div>
+      </div>
+      <div class="pipe-row" style="margin-top:8px;">
+        <div style="flex:1;"></div>
+        <div class="pipe-box orange" style="margin:0 auto;">JSON Export → HTML Prototype<small>one file per star</small></div>
+        <div style="flex:1;"></div>
+      </div>
+    </div>
+
+    <!-- ── Quick Start ── -->
+    <h2 id="doc-quickstart">Quick Start</h2>
+    <div class="step-list">
+      <div class="step-item">
+        <div class="step-num2">1</div>
+        <div class="step-body">
+          <strong>Open the Colab notebook</strong>
+          <span>Upload <code>exoplanet_colab.ipynb</code> to Google Colab. Select
+          <em>Runtime → Change runtime type → T4 GPU</em> for faster CNN training.</span>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num2">2</div>
+        <div class="step-body">
+          <strong>Configure your targets (Cell 3)</strong>
+          <span>Edit <code>KOI_IDS</code> with the Kepler Object of Interest IDs you want to analyse.
+          A balanced mix of confirmed planets and known false positives gives the best model.</span>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num2">3</div>
+        <div class="step-body">
+          <strong>Run all cells (Cells 1–11)</strong>
+          <span>Takes ~20–40 minutes for ~100 stars on a T4 GPU. Cell 10 downloads a zip of
+          all JSON results.</span>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num2">4</div>
+        <div class="step-body">
+          <strong>Load results here</strong>
+          <span>Unzip and drag all <code>.json</code> files onto the sidebar upload zone.
+          Click any star to see its full analysis.</span>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num2">5</div>
+        <div class="step-body">
+          <strong>Or fetch a live star</strong>
+          <span>Use the <em>Fetch by ID</em> box (sidebar) to pull any KOI or TESS TOI
+          directly from the NASA Archive. This shows star parameters and a synthetic light
+          curve — run it through Colab for full ML analysis.</span>
+        </div>
+      </div>
+    </div>
+    <div class="callout callout-blue">
+      <strong>Minimum dataset:</strong> At least 6 stars are needed for a train/test split.
+      For reliable metrics, aim for ≥ 40 stars with a balanced planet/false-positive ratio.
+    </div>
+
+    <!-- ── Data Collection ── -->
+    <h2 id="doc-data">Data Collection</h2>
+    <p>
+      Light curves are downloaded from <strong>NASA MAST</strong> via the
+      <code>lightkurve</code> library. For each KOI, the pipeline:
+    </p>
+    <ol>
+      <li>Resolves the KIC (Kepler Input Catalog) number from the NASA Exoplanet Archive.</li>
+      <li>Downloads all available quarters of long-cadence Kepler photometry (~29.4 min cadence).</li>
+      <li>Stitches quarters together, normalises, removes NaN values, and sigma-clips outliers (5σ).</li>
+      <li>Fetches the orbital period and archive disposition (CONFIRMED / FALSE POSITIVE) from the
+          Cumulative KOI table via TAP.</li>
+      <li>Phase-folds the light curve onto the orbital period and bins into <strong>2000 equidistant
+          phase bins</strong>.</li>
+    </ol>
+    <p>
+      TESS targets follow the same process using the TOI table and
+      <code>lightkurve.search_lightcurve(…, mission='TESS')</code>.
+    </p>
+
+    <!-- ── Preprocessing ── -->
+    <h2 id="doc-preprocess">Preprocessing</h2>
+    <p>Each phase-folded light curve passes through a four-step preprocessing chain:</p>
+    <ol>
+      <li><strong>NaN interpolation</strong> — linear interpolation fills any missing cadences.</li>
+      <li><strong>Savitzky–Golay detrending</strong> — a window-51, poly-3 SG filter estimates
+          the stellar variability trend; dividing by this trend removes long-term systematics
+          while preserving the transit shape.</li>
+      <li><strong>Median normalisation</strong> — flux is divided by its median so the
+          out-of-transit baseline sits at 1.0.</li>
+      <li><strong>Resampling to 2000 points</strong> — all curves are interpolated to a
+          fixed length, enabling batch training.</li>
+    </ol>
+    <p>
+      A <strong>local view</strong> (200 points centred on phase 0.5, representing the transit)
+      is also extracted for the DualViewCNN. This zoomed view captures ingress/egress detail
+      that the global view blurs at 2000-point resolution.
+    </p>
+    <div class="callout callout-yellow">
+      <strong>Phase convention:</strong> The transit is placed at phase 0.5. The highlighted
+      green band in all light curve plots marks the expected transit window (phase 0.45–0.55).
+    </div>
+
+    <!-- ── Feature Extraction ── -->
+    <h2 id="doc-features">Feature Extraction (30 Features)</h2>
+    <p>
+      For the traditional ML models, 30 scalar features are extracted from each preprocessed
+      global light curve. These capture physical transit diagnostics used by human astronomers:
+    </p>
+    <h3>Transit Shape Features</h3>
+    <ul>
+      <li><strong>transit_depth</strong> — difference between median flux and the minimum (proxy for Rp/R☉).</li>
+      <li><strong>transit_duration</strong> — fraction of phase in transit (below 50% depth threshold).</li>
+      <li><strong>flat_fraction</strong> — fraction of in-transit points near the bottom (flat-bottom = planet, V-shape = eclipsing binary).</li>
+      <li><strong>transit_symmetry</strong> — mean absolute flux difference between ingress and egress halves.</li>
+      <li><strong>vshape_index</strong> — ratio of mean-to-min inside transit; low = flat-bottom (planet).</li>
+      <li><strong>ingress_proxy</strong> — mean slope at transit edges; steep = V-shape = binary.</li>
+      <li><strong>bottom_flatness</strong> — std of deepest 50% of in-transit points; low = true planet.</li>
+      <li><strong>ld_proxy</strong> — quadratic coefficient of polynomial fit inside transit (limb darkening proxy).</li>
+    </ul>
+    <h3>Signal Quality Features</h3>
+    <ul>
+      <li><strong>snr</strong> — transit depth / out-of-transit noise std.</li>
+      <li><strong>snr_robust</strong> — depth / (1.4826 × MAD), more robust to outliers than SNR.</li>
+      <li><strong>depth_snr</strong> — depth / overall flux std.</li>
+      <li><strong>scatter_ratio</strong> — in-transit scatter / out-of-transit scatter.</li>
+      <li><strong>oot_range</strong> — 99th–1st percentile of out-of-transit flux (stellar variability).</li>
+      <li><strong>outlier_fraction</strong> — fraction of OOT points more than 3σ from median.</li>
+    </ul>
+    <h3>False-Positive Diagnostics</h3>
+    <ul>
+      <li><strong>even_odd_diff</strong> — depth difference between first/second half of the LC (eclipsing binaries show alternating depths).</li>
+      <li><strong>secondary_depth / secondary_ratio</strong> — depth at phase 0.5±0.05 (secondary eclipse).</li>
+      <li><strong>sec03_ratio, sec07_ratio</strong> — secondary eclipses at eccentric phases 0.27–0.33 and 0.67–0.73.</li>
+      <li><strong>half_period_depth</strong> — eclipse at phase 0.0/1.0 (equal-depth EB indicator).</li>
+      <li><strong>transit_phase_shift</strong> — |phase of flux minimum − 0.5|; small = well-aligned transit.</li>
+    </ul>
+    <h3>Statistical Features</h3>
+    <ul>
+      <li><strong>centroid_skew</strong> — skewness of the flux distribution (proxy for photometric asymmetry; a high value indicates an asymmetric brightness profile, which can distinguish planetary transits from eclipsing binaries; note: this is a flux-distribution metric, not a photocenter position measurement).</li>
+      <li><strong>kurtosis</strong> — excess kurtosis (sharp transit spike → high kurtosis).</li>
+      <li><strong>std, mean, p5_p95_range</strong> — global flux statistics.</li>
+      <li><strong>fold_quality</strong> — variance of the phase-folded curve (noisy fold = higher variance).</li>
+      <li><strong>transit_count, transit_fill</strong> — number and fraction of in-transit points.</li>
+    </ul>
+
+    <!-- ── ML Models ── -->
+    <h2 id="doc-models">Traditional ML Models</h2>
+    <p>
+      Nine classifiers are trained on the 30-feature vectors. All models except tree-based ones
+      are wrapped in <code>sklearn.Pipeline</code> with <code>RobustScaler</code> for
+      scale-invariant fitting.
+    </p>
+    <table class="metric-def-table">
+      <thead><tr><th>Model</th><th>Key Strength</th><th>Tuning</th></tr></thead>
+      <tbody>
+        <tr><td class="mname">Logistic Regression</td><td class="mdesc">Linear baseline, fully interpretable coefficients</td><td class="mrange">C, solver</td></tr>
+        <tr><td class="mname">Decision Tree</td><td class="mdesc">Fully transparent decision rules</td><td class="mrange">max_depth</td></tr>
+        <tr><td class="mname">KNN</td><td class="mdesc">Non-parametric, no assumptions about distribution</td><td class="mrange">k, metric</td></tr>
+        <tr><td class="mname">SVM (RBF)</td><td class="mdesc">Strong non-linear margins on small datasets</td><td class="mrange">C, gamma</td></tr>
+        <tr><td class="mname">Random Forest</td><td class="mdesc">Bagging ensemble; low variance</td><td class="mrange">Optuna/RS</td></tr>
+        <tr><td class="mname">Extra Trees</td><td class="mdesc">Even more randomised splits; fast</td><td class="mrange">Optuna/RS</td></tr>
+        <tr><td class="mname">MLP</td><td class="mdesc">Learns non-linear feature interactions</td><td class="mrange">hidden layers</td></tr>
+        <tr><td class="mname">XGBoost</td><td class="mdesc">Gradient-boosted trees, SHAP-compatible</td><td class="mrange">Optuna (25 trials)</td></tr>
+        <tr><td class="mname">LightGBM</td><td class="mdesc">Faster boosting; better on larger datasets</td><td class="mrange">Optuna (25 trials)</td></tr>
+      </tbody>
+    </table>
+    <h3>Stacking Ensemble</h3>
+    <p>
+      A <strong>StackingClassifier</strong> (scikit-learn) combines RF, ET, XGBoost, SVM, LR,
+      and LightGBM as level-1 learners. Their out-of-fold probability predictions become input
+      features for a logistic regression meta-learner. This is strictly more powerful than
+      soft-voting because the meta-learner learns <em>how much to trust each base model</em>.
+    </p>
+    <h3>Class Imbalance</h3>
+    <p>
+      <strong>SMOTE</strong> oversamples the minority class in feature space before training.
+      Tree models use <code>class_weight='balanced_subsample'</code>. XGBoost uses
+      <code>scale_pos_weight = n_negative / n_positive</code>.
+    </p>
+    <h3>Hyperparameter Tuning</h3>
+    <p>
+      XGBoost and LightGBM are tuned with <strong>Optuna Bayesian optimisation</strong>
+      (25 trials, TPE sampler, 3-fold stratified CV). Random Forest and Extra Trees use
+      <strong>RandomizedSearchCV</strong> (15 iterations).
+    </p>
+    <h3>Decision Threshold</h3>
+    <p>
+      Each model uses <strong>Youden's J statistic</strong> to find an optimal threshold:
+      <code>threshold = argmax(TPR − FPR)</code>, capped at 0.5 to prioritise recall
+      (missing a real planet is worse than a false alarm in exoplanet surveys).
+    </p>
+
+    <!-- ── DualView CNN ── -->
+    <h2 id="doc-cnn">DualView 1D Convolutional Neural Network</h2>
+    <p>
+      The CNN architecture is inspired by <em>AstroNet</em>
+      (Shallue &amp; Vanderburg, 2018) with several enhancements:
+    </p>
+    <h3>Architecture</h3>
+    <ul>
+      <li><strong>Global branch</strong> — processes the full 2000-point phase-folded LC.
+          Captures periodic context and long-range flux patterns.</li>
+      <li><strong>Local branch</strong> — processes a 200-point zoomed view centred on
+          the transit (phase 0.43–0.57). Captures fine-grained ingress/egress shape.</li>
+      <li>Each branch is a <strong>ViewEncoder</strong>: 2 strided conv blocks
+          (Conv1d → BN → GELU → MaxPool) + 2 residual blocks + final 64→128-channel conv
+          + adaptive global average pooling → 128-dim (global) or 64-dim (local) embedding.</li>
+      <li>Embeddings are concatenated (192-dim) and passed through a
+          <strong>channel attention gate</strong> (squeeze-and-excitation style) that
+          learns which embedding dimensions matter most.</li>
+      <li>Classification head: 192 → 64 → 2 (planet / non-planet) with GELU activations
+          and 0.4 dropout.</li>
+    </ul>
+    <h3>Training Details</h3>
+    <ul>
+      <li><strong>Loss:</strong> Focal Loss (γ=2, label smoothing=0.1) with class weights —
+          handles imbalanced datasets by down-weighting easy examples.</li>
+      <li><strong>Optimiser:</strong> AdamW (lr=5×10⁻⁴, weight_decay=3×10⁻⁴).</li>
+      <li><strong>Scheduler:</strong> Cosine Annealing with Warm Restarts (T₀=20 epochs).</li>
+      <li><strong>Augmentation:</strong> Gaussian noise (σ=0.003) + circular phase shift ±4%
+          + Mixup (α=0.15, 50% of batches).</li>
+      <li><strong>Early stopping:</strong> Patience=18 epochs on validation F1.</li>
+      <li><strong>TTA:</strong> 7 augmented inference passes are averaged at prediction time.</li>
+    </ul>
+    <div class="callout callout-green">
+      <strong>Adaptive capacity:</strong> For small training sets (&lt;30 samples), the network
+      automatically reduces its embedding dimensions (128→64 global, 64→32 local) to prevent
+      overfitting.
+    </div>
+
+    <!-- ── Explainability ── -->
+    <h2 id="doc-explainability">Explainability: SHAP + Grad-CAM</h2>
+    <h3>SHAP (XGBoost)</h3>
+    <p>
+      <strong>SHapley Additive exPlanations</strong> (Lundberg &amp; Lee, 2017) compute each
+      feature's contribution to a single prediction by averaging over all possible feature
+      orderings. For XGBoost, <code>TreeExplainer</code> computes exact SHAP values in
+      polynomial time.
+    </p>
+    <p>The prototype shows the top-8 SHAP features per star, sorted by |SHAP value|.
+      <span style="color:var(--accent);font-weight:600;">Blue bars</span> = feature pushed
+      the prediction toward planet;
+      <span style="color:var(--red);font-weight:600;">red bars</span> = toward non-planet.</p>
+    <h3>Grad-CAM (DualView CNN)</h3>
+    <p>
+      <strong>Gradient-weighted Class Activation Mapping</strong> (Selvaraju et al., 2017)
+      identifies which time-steps in the global light curve most influenced the CNN's decision.
+      Gradients flow back from the target class logit to the last convolutional layer (64→128
+      channels); the gradient-weighted sum of feature maps produces a 1D activation map.
+    </p>
+    <p>The red overlay on the light curve canvas shows this activation — high activation
+      inside the transit window (phase 0.45–0.55) confirms the CNN is reasoning about the
+      transit dip rather than noise elsewhere.</p>
+    <h3>Explainability Metrics</h3>
+    <ul>
+      <li><strong>SHAP Faithfulness</strong> — accuracy drop when the top-3 SHAP features are
+          masked with their median values. Positive = the explanation correctly identifies the
+          most important features.</li>
+      <li><strong>SHAP Sparsity</strong> — fraction of |SHAP| values &lt; 0.01. Higher = the
+          model uses fewer, more distinct features to decide.</li>
+      <li><strong>SHAP Consistency</strong> — mean Spearman rank correlation of feature
+          importance across all stars. Near 1.0 = the model uses the same reasoning for
+          every prediction.</li>
+      <li><strong>Grad-CAM Localization</strong> — fraction of total CNN activation inside the
+          transit window. 1.0 = perfectly focused on the transit; &lt;0.3 may indicate the CNN
+          is distracted by noise or stellar variability.</li>
+    </ul>
+
+    <!-- ── Reading Results ── -->
+    <h2 id="doc-results">Reading the Results Prototype</h2>
+    <h3>Info Bar</h3>
+    <p>
+      Shows the KOI/TIC identifier, mission (Kepler or TESS), the <strong>archive label</strong>
+      (what NASA catalogues say) and the <strong>CNN prediction</strong> for this star.
+      An amber warning banner appears when the model disagrees with the archive.
+    </p>
+    <h3>Phase-Folded Light Curve Canvas</h3>
+    <p>
+      The blue line is the actual preprocessed, phase-folded photometric flux (from the Colab
+      JSON). The <span style="color:#ef4444;">red shading</span> is the Grad-CAM overlay —
+      regions where the CNN paid attention. The
+      <span style="color:#059669;">green band</span> at phase 0.45–0.55 marks the expected
+      transit window.
+    </p>
+    <h3>Model Comparison Table</h3>
+    <p>
+      <strong>Accuracy, Precision, Recall, F1, AUC-ROC, and MCC</strong> are
+      <em>global metrics</em> computed on the held-out test set — they are the same value
+      for every star because they describe overall model performance, not per-star performance.
+      The <strong>This Star</strong> column shows the per-star prediction and confidence
+      probability, which differs for each star.
+    </p>
+    <h3>DualView CNN Panel</h3>
+    <p>
+      Shows the same global CNN metrics plus the per-star confidence score. The
+      <strong>CNN confidence</strong> (shown as a %) is the softmax probability for the
+      "planet" class after Test-Time Augmentation (7 passes).
+    </p>
+    <h3>SHAP Feature Importance</h3>
+    <p>
+      Per-star SHAP values from XGBoost. These are computed individually for each star,
+      so they differ between stars even though the XGBoost model is the same. They show
+      <em>why this specific prediction was made</em>, not global feature importance.
+    </p>
+    <h3>Pipeline Visuals</h3>
+    <p>
+      The visuals panel contains base64-encoded plots generated by the Colab notebook:
+      the per-star light curve with Grad-CAM overlay, the per-star Grad-CAM activation
+      panel, the global SHAP summary, the CNN training curves, and the multi-model comparison
+      chart.
+    </p>
+
+    <!-- ── Metric Definitions ── -->
+    <h2 id="doc-metrics">Metric Definitions</h2>
+    <table class="metric-def-table">
+      <thead><tr><th>Metric</th><th>Range</th><th>Definition</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="mname">Accuracy</td><td class="mrange">0 – 1</td>
+          <td class="mdesc">Fraction of all predictions that are correct: (TP+TN)/(TP+FP+FN+TN).</td>
+        </tr>
+        <tr>
+          <td class="mname">Precision</td><td class="mrange">0 – 1</td>
+          <td class="mdesc">Of all stars predicted "planet", what fraction are truly planets? TP/(TP+FP).
+          High precision = fewer false alarms.</td>
+        </tr>
+        <tr>
+          <td class="mname">Recall (Sensitivity)</td><td class="mrange">0 – 1</td>
+          <td class="mdesc">Of all true planets, what fraction did the model find? TP/(TP+FN).
+          High recall = fewer missed planets. <em>Prioritised in exoplanet search.</em></td>
+        </tr>
+        <tr>
+          <td class="mname">F1 Score</td><td class="mrange">0 – 1</td>
+          <td class="mdesc">Harmonic mean of Precision and Recall: 2·P·R/(P+R).
+          Balances both goals; used as the primary optimisation target.</td>
+        </tr>
+        <tr>
+          <td class="mname">AUC-ROC</td><td class="mrange">0.5 – 1</td>
+          <td class="mdesc">Area Under the ROC Curve. Probability that the model ranks a random
+          planet higher than a random non-planet. 0.5 = random; 1.0 = perfect.</td>
+        </tr>
+        <tr>
+          <td class="mname">MCC</td><td class="mrange">−1 – 1</td>
+          <td class="mdesc">Matthews Correlation Coefficient. Considers all four confusion matrix
+          cells; most informative for imbalanced datasets. 0 = random; 1 = perfect.</td>
+        </tr>
+        <tr>
+          <td class="mname">CV F1 ± σ</td><td class="mrange">0 – 1</td>
+          <td class="mdesc">Mean F1 across 5-fold stratified cross-validation ± standard deviation.
+          More reliable than a single train/test split for small datasets.</td>
+        </tr>
+        <tr>
+          <td class="mname">CNN Confidence</td><td class="mrange">0 – 1</td>
+          <td class="mdesc">Softmax probability for the "planet" class, averaged over 7
+          Test-Time Augmentation passes. &gt;0.5 = predicted planet (threshold may be lower
+          due to Youden's J optimisation).</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ── Data Sources ── -->
+    <h2 id="doc-data-sources">Data Sources</h2>
+    <ul>
+      <li>
+        <strong>Kepler Mission (NASA)</strong> — 4-year photometric survey of ~150,000 stars.
+        Long-cadence (~29.4 min) light curves downloaded via MAST.
+        Labels from the <em>Cumulative KOI Table</em> on the NASA Exoplanet Archive.
+      </li>
+      <li>
+        <strong>TESS Mission (NASA)</strong> — all-sky survey; 2-min and 30-min cadence.
+        Labels from the TESS Object of Interest (TOI) table.
+      </li>
+      <li>
+        <strong>lightkurve</strong> — open-source Python library for Kepler/TESS data.
+      </li>
+      <li>
+        <strong>NASA Exoplanet Archive TAP</strong> — Table Access Protocol endpoint used
+        to fetch orbital periods, transit parameters, and archive dispositions at runtime.
+      </li>
+    </ul>
+
+    <!-- ── FAQ ── -->
+    <h2 id="doc-faq">Frequently Asked Questions</h2>
+    <h3>Why are Accuracy and F1 the same for every star?</h3>
+    <p>
+      These are <em>model-level</em> metrics computed once on the test set, not per-star metrics.
+      They describe how well the model performs overall. The per-star information is the
+      confidence score and prediction in the "This Star" column.
+    </p>
+    <h3>Why does the light curve look noisy or flat for some stars?</h3>
+    <p>
+      Some false positives or very shallow transits (e.g., sub-Mercury planets) have extremely
+      small transit depths (&lt;100 ppm), which may appear as a nearly flat line after normalisation.
+      The Grad-CAM activation pattern is more informative than the raw flux in these cases.
+    </p>
+    <h3>What does a Grad-CAM localization score near 0 mean?</h3>
+    <p>
+      It means the CNN focused its attention <em>outside</em> the transit window — possibly on
+      stellar variability, instrumental artefacts, or secondary eclipses. This can indicate a
+      false positive or a poorly phase-folded light curve.
+    </p>
+    <h3>Can I add my own CSV light curve?</h3>
+    <p>
+      Yes — the pipeline's <code>load_csv()</code> function accepts any CSV with time and flux
+      columns. Run it through Colab via <code>--mode csv</code> in <code>pipeline.py</code>,
+      or modify Cell 4 to load your file from Google Drive.
+    </p>
+    <h3>Why does the model sometimes disagree with NASA?</h3>
+    <p>
+      The model is trained on a subset of KOIs and may not generalise perfectly to all cases.
+      A mismatch can also indicate a genuinely ambiguous light curve — cases where even expert
+      astronomers disagree. Always treat ML predictions as a screening tool, not a final verdict.
+    </p>
+    <h3>What is the "Stacking Ensemble"?</h3>
+    <p>
+      A meta-learning approach where the predictions of multiple base models (RF, ET, XGBoost,
+      SVM, LR, LightGBM) are used as input features for a second-level logistic regression
+      classifier. This learns the optimal combination of base model outputs, typically
+      outperforming any individual model.
+    </p>
+
+    <div style="height:40px;"></div>
+  </div><!-- /docs-content -->
+</div><!-- /docsView -->
+
+<!-- ── Quick-reference drawer ─────────────────────────────────────────────── -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawerIfOutside(event)">
+  <div class="drawer-panel" id="drawerPanel">
+    <div class="drawer-header">
+      <span style="font-size:18px;">📋</span>
+      <h3>Quick Reference</h3>
+      <button class="drawer-close" onclick="closeDrawer()">✕ Close</button>
+    </div>
+    <div class="drawer-body">
+
+      <div class="drawer-section">
+        <h4>How to Read a Star</h4>
+        <table class="qref-table">
+          <tr>
+            <td class="qname">Archive label</td>
+            <td class="qdesc">What NASA catalogues say: Planet/Candidate or False Positive. Ground truth for model evaluation.</td>
+          </tr>
+          <tr>
+            <td class="qname">CNN prediction</td>
+            <td class="qdesc">What the DualView CNN predicts for this star. Confidence % shown in the blue/red badge.</td>
+          </tr>
+          <tr>
+            <td class="qname">Light curve</td>
+            <td class="qdesc">Actual phase-folded flux. Transit dip appears near phase 0.5 (green band). Red shading = CNN attention (Grad-CAM).</td>
+          </tr>
+          <tr>
+            <td class="qname">SHAP bars</td>
+            <td class="qdesc">Why this specific prediction was made. Blue = pushed toward planet; red = pushed toward non-planet.</td>
+          </tr>
+          <tr>
+            <td class="qname">This Star column</td>
+            <td class="qdesc">Per-star prediction and confidence from each model. This is the only column that changes between stars.</td>
+          </tr>
+          <tr>
+            <td class="qname">Acc/F1/AUC</td>
+            <td class="qdesc">Global test-set performance of each model — same number for all stars in a run.</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="drawer-section">
+        <h4>Key Metrics at a Glance</h4>
+        <table class="qref-table">
+          <tr><td class="qname">F1 Score</td><td class="qdesc">Harmonic mean of Precision &amp; Recall. Primary optimisation target.</td></tr>
+          <tr><td class="qname">AUC-ROC</td><td class="qdesc">Ranking quality. 0.5 = random; 1.0 = perfect. Threshold-independent.</td></tr>
+          <tr><td class="qname">MCC</td><td class="qdesc">Most balanced metric for imbalanced datasets. 0 = random; 1 = perfect.</td></tr>
+          <tr><td class="qname">CV F1 ± σ</td><td class="qdesc">5-fold cross-validation F1 ± std. More reliable for small datasets.</td></tr>
+          <tr><td class="qname">GradCAM loc.</td><td class="qdesc">Fraction of CNN attention inside transit window. Higher = more focused.</td></tr>
+        </table>
+      </div>
+
+      <div class="drawer-section">
+        <h4>Keyboard Shortcuts</h4>
+        <div class="shortcut-list">
+          <div class="shortcut-row"><span class="shortcut-key">D</span><span class="shortcut-desc">Toggle full documentation view</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">?</span><span class="shortcut-desc">Open / close this quick reference</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">Esc</span><span class="shortcut-desc">Close lightbox, drawer, or docs</span></div>
+          <div class="shortcut-row"><span class="shortcut-key">↑ ↓</span><span class="shortcut-desc">Navigate between stars in sidebar</span></div>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <h4>Data Pipeline</h4>
+        <p style="font-size:11px;color:var(--muted);line-height:1.6;">
+          NASA MAST → Phase-fold → SG detrend → Normalize → 2000 pts →
+          30 features (traditional ML) + DualViewCNN (global 2000pt + local 200pt branch) →
+          SHAP + Grad-CAM → JSON per star → this prototype.
+        </p>
+      </div>
+
+      <button class="drawer-full-link" onclick="closeDrawer();toggleDocs();">
+        📚 Open Full Documentation
+      </button>
+
+    </div><!-- /drawer-body -->
+  </div><!-- /drawer-panel -->
+</div><!-- /drawer-overlay -->
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const loaded  = {};   // id → JSON data
+let   current = null; // currently selected JSON data
+let   lcData  = null;
+
+// ── Drag / drop / file input ───────────────────────────────────────────────
+function onDragOver(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.add('drag-over');
+}
+function onDragLeave() {
+  document.getElementById('dropZone').classList.remove('drag-over');
+}
+function onDrop(e) {
+  e.preventDefault();
+  onDragLeave();
+  [...e.dataTransfer.files].forEach(loadFile);
+}
+function onFileSelected(e) {
+  [...e.target.files].forEach(loadFile);
+  e.target.value = '';
+}
+
+function loadFile(file) {
+  if (!file.name.endsWith('.json')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    let data;
+    try {
+      data = JSON.parse(e.target.result);
+    } catch(err) {
+      showFetchError(`JSON parse failed for ${file.name}: ${err.message}. Make sure Cell 16 of the Colab notebook ran successfully.`);
+      return;
+    }
+    try {
+      const id = (data && data.id) ? data.id : file.name.replace('.json','');
+      data.id = id;
+      loaded[id] = data;
+      rebuildList();
+      selectResult(id);
+    } catch(err) {
+      showFetchError(`Loaded ${file.name} but rendering failed: ${err.message}`);
+      console.error('Render error:', err);
+    }
+  };
+  reader.onerror = () => showFetchError(`Could not read file ${file.name}`);
+  reader.readAsText(file);
+}
+
+function showFetchError(msg) {
+  const s = document.getElementById('fetchStatus');
+  s.className = 'fetch-status err';
+  s.textContent = '✗ ' + msg;
+}
+
+// ── Sidebar list ────────────────────────────────────────────────────────────
+function rebuildList() {
+  const ids = Object.keys(loaded);
+  const section = document.getElementById('resultsSection');
+  const list    = document.getElementById('resultList');
+  const filterEl = document.getElementById('filterMisclassified');
+  const filterOn = filterEl && filterEl.checked;
+
+  section.style.display = ids.length ? 'block' : 'none';
+  document.getElementById('resultsCount').textContent = `Loaded Results (${ids.length})`;
+
+  const outcomeOf = id => {
+    const d = loaded[id];
+    const lbl = d.label||'unknown';
+    const pred = cnnDecision(d).pred;
+    if (lbl==='unknown') return 'unk';
+    if (pred==='unknown') return 'unk';
+    const pp = pred==='planet', lp = lbl==='planet';
+    if (pp && lp) return 'TP'; if (!pp && !lp) return 'TN';
+    if (pp && !lp) return 'FP'; return 'FN';
+  };
+
+  const nPlanet = ids.filter(id => (loaded[id].label||'') === 'planet').length;
+  const nFP     = ids.filter(id => (loaded[id].label||'') === 'false_positive').length;
+  const nMisc   = ids.filter(id => { const o=outcomeOf(id); return o==='FP'||o==='FN'; }).length;
+  const statsEl = document.getElementById('datasetStats');
+  if (statsEl) statsEl.innerHTML =
+    `🪐 ${nPlanet} planet&thinsp;·&thinsp;✗ ${nFP} FP&thinsp;·&thinsp;n=${ids.length}` +
+    (nMisc > 0 ? `<br><span style="color:var(--yellow)">⚠ ${nMisc} misclassified</span>` : '');
+
+  const filteredIds = filterOn
+    ? ids.filter(id => { const o=outcomeOf(id); return o==='FP'||o==='FN'; })
+    : ids;
+
+  if (filteredIds.length === 0) {
+    list.innerHTML = '<div style="padding:12px 10px;font-size:11px;color:var(--muted);">No misclassified stars.</div>';
+    return;
+  }
+
+  const oc = {TP:'var(--green)',TN:'var(--cyan)',FP:'var(--red)',FN:'var(--yellow)',unk:'var(--muted)'};
+  list.innerHTML = filteredIds.map(id => {
+    const d = loaded[id];
+    const lbl = d.label || 'unknown';
+    const tagClass = lbl === 'planet' ? 'tag-planet' : lbl === 'false_positive' ? 'tag-fp' : 'tag-unk';
+    const tagText  = lbl === 'planet' ? '🪐 Planet' : lbl === 'false_positive' ? '✗ FP' : '? Cand.';
+    const outcome  = outcomeOf(id);
+    const dotColor = outcome !== 'unk' ? oc[outcome] : (lbl==='planet'?'var(--green)':lbl==='false_positive'?'var(--red)':'var(--yellow)');
+    const outcomeTag = outcome !== 'unk'
+      ? `<span style="font-size:9px;font-weight:700;color:${oc[outcome]};margin-left:3px;border:1px solid ${oc[outcome]};border-radius:3px;padding:0 3px;">${outcome}</span>` : '';
+    const f1 = d.cnn?.f1 !== undefined ? `F1 ${(d.cnn.f1*100).toFixed(0)}%` : '';
+    return `<button class="result-btn" id="rb-${CSS.escape(id)}" onclick="selectResult('${id.replace(/'/g,"\'")}')">
+      <div class="result-dot" style="background:${dotColor}"></div>
+      <div class="result-info">
+        <div class="result-name">${id}${outcomeTag}</div>
+        <div class="result-sub">${d.mission||'?'} · <span class="tag ${tagClass}">${tagText}</span>${f1?' · '+f1:''}</div>
+      </div>
+    </button>`;
+  }).join('');
+}
+
+// ── Select & render a result ────────────────────────────────────────────────
+function selectResult(id) {
+  current = loaded[id];
+  if (!current) return;
+
+  // Update sidebar active state
+  document.querySelectorAll('.result-btn').forEach(b => b.classList.remove('active'));
+  const rb = document.getElementById('rb-' + CSS.escape(id));
+  if (rb) rb.classList.add('active');
+
+  // Show results view, hide welcome
+  document.getElementById('welcomeScreen').style.display = 'none';
+  const db = document.getElementById('disclaimerBanner'); if (db) db.style.display = 'flex';
+  const rv = document.getElementById('resultsView');
+  rv.style.display = 'flex';
+
+  renderInfoBar(current);
+  renderStarInfo(current);
+  renderLightCurve(current);
+  renderModelTable(current);
+  renderCNN(current);
+  renderBiLSTM(current);
+  renderSHAP(current);
+  renderExplainability(current);
+  renderVisuals(current);
+
+  // Animate bars after DOM settles
+  requestAnimationFrame(() => setTimeout(animateBars, 80));
+}
+
+// ── Star info — works for both live NASA fetch and Colab JSON imports ──────────
+function renderStarInfo(d) {
+  const card = document.getElementById('starInfoCard');
+  // Use star_params from Colab JSON, or top-level fields from live fetch
+  const sp = d.star_params || {};
+  const hasParams = d._liveFromNASA || Object.keys(sp).length > 0;
+  if (!hasParams) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  // Merge: live-fetch fields live on d directly; Colab fields live on d.star_params
+  const p = d._liveFromNASA ? d : sp;
+
+  const src = document.getElementById('starInfoSource');
+  if (d._liveFromNASA) {
+    src.textContent = d.mission === 'TESS' ? 'NASA TAP · TESS TOI Table' : 'NASA TAP · Kepler Cumulative KOI Table';
+    document.getElementById('liveNote').style.display = '';
+  } else {
+    src.textContent = (p.mission||d.mission||'Kepler') === 'TESS'
+      ? 'Colab JSON · TESS TOI parameters'
+      : 'Colab JSON · Kepler Cumulative KOI parameters';
+    document.getElementById('liveNote').style.display = 'none';
+  }
+
+  function val(v, decimals, unit) {
+    if (v === null || v === undefined || (typeof v === 'number' && isNaN(v)))
+      return `<span class="si-na">Unavailable</span>`;
+    const num = typeof decimals === 'number' ? parseFloat(v).toFixed(decimals) : v;
+    const u   = unit ? `<span class="si-unit">${unit}</span>` : '';
+    return `${num}${u}`;
+  }
+
+  const disp = p.disposition || d.disposition || '';
+  const items = [
+    {label:'KOI / TOI ID',       value: val(d.id)},
+    {label:'Mission',            value: val(p.mission || d.mission)},
+    {label:'Disposition',        value: disp ? val(disp) : '<span class="si-na">Unavailable</span>'},
+    {label:'Archive Label',      value: d.label === 'planet' ? '🪐 Planet / Candidate'
+                                      : d.label === 'false_positive' ? '✗ False Positive'
+                                      : '<span class="si-na">Unknown</span>'},
+    {label:'Orbital Period',     value: val(p.period, 4, 'days')},
+    {label:'Transit Duration',   value: p.duration != null
+      ? val(d._liveFromNASA ? p.duration * 24 : p.duration, 2, 'hours')
+      : `<span class="si-na">Unavailable</span>`},
+    {label:'Transit Depth',      value: p.depth != null
+      ? val((parseFloat(p.depth) * (d._liveFromNASA ? 1e6 : 1)).toFixed(0), null, 'ppm')
+      : `<span class="si-na">Unavailable</span>`},
+    {label:'Planet Radius',      value: val(p.prad, 2, 'R⊕')},
+    {label:'Semi-major Axis',    value: val(p.sma, 4, 'AU')},
+    {label:'Equil. Temperature', value: val(p.teq, 0, 'K')},
+    {label:'Insolation Flux',    value: val(p.insol, 2, 'S⊕')},
+    {label:'Impact Parameter',   value: val(p.impact, 3)},
+    {label:'Stellar Radius',     value: val(p.srad, 3, 'R☉')},
+    {label:'Stellar Mass',       value: val(p.smass, 3, 'M☉')},
+    {label:'Stellar Teff',       value: val(p.steff, 0, 'K')},
+    {label:'Stellar log g',      value: val(p.slogg, 3, 'cgs')},
+    {label:'Stellar Magnitude',  value: val(p.mag, 3)},
+    {label:'KIC / TIC ID',       value: val(p.kepid || d.kepid)},
+    {label:'RA',                 value: val(p.ra, 5, '°')},
+    {label:'Dec',                value: val(p.dec, 5, '°')},
+    {label:'Disposition Score',  value: val(p.score, 3)},
+  ];
+
+  document.getElementById('starInfoGrid').innerHTML = items.map(({label, value}) => `
+    <div class="si-card">
+      <div class="si-label">${label}</div>
+      <div class="si-value">${value}</div>
+    </div>`).join('');
+}
+
+// ── Info bar ─────────────────────────────────────────────────────────────────
+function renderInfoBar(d) {
+  document.getElementById('infoId').textContent = d.id;
+  document.getElementById('infoMission').textContent = d.mission || '?';
+  document.getElementById('infoPoints').textContent = (d.nPoints||2000).toLocaleString();
+
+  const lbl  = d.label      || 'unknown';
+  const pred = cnnDecision(d).pred;
+
+  const lblBadge = document.getElementById('labelBadge');
+  lblBadge.textContent  = lbl === 'planet' ? '🪐 True: Planet' : lbl === 'false_positive' ? '✗ True: False Positive' : '? True: Unknown';
+  lblBadge.className    = 'label-badge ' + (lbl==='planet'?'badge-planet':lbl==='false_positive'?'badge-fp':'badge-unk');
+
+  const predBadge = document.getElementById('predBadge');
+  const predPlanet = pred === 'planet';
+  predBadge.textContent = predPlanet ? '→ Predicted: Planet' : pred === 'false' ? '→ Predicted: Non-planet' : '→ Predicted: ?';
+  predBadge.className   = 'label-badge ' + (predPlanet?'badge-planet':pred==='false'?'badge-fp':'badge-unk');
+  predBadge.style.marginLeft = '0';
+
+  // TP / TN / FP / FN outcome badge. An outcome needs BOTH a determinate
+  // archive label and a determinate CNN decision - otherwise the fallback
+  // branch would report a false negative for a prediction never made.
+  let outcome = ''; let outcomeColor = '';
+  if (lbl !== 'unknown' && pred !== 'unknown') {
+    const lblPl = lbl === 'planet';
+    if (predPlanet && lblPl)   { outcome = 'TP'; outcomeColor = 'var(--green)'; }
+    else if (!predPlanet && !lblPl) { outcome = 'TN'; outcomeColor = 'var(--cyan)'; }
+    else if (predPlanet && !lblPl)  { outcome = 'FP'; outcomeColor = 'var(--red)'; }
+    else                             { outcome = 'FN'; outcomeColor = 'var(--yellow)'; }
+  }
+  const outBadge = document.getElementById('outcomeBadge');
+  if (outBadge) {
+    if (outcome) {
+      outBadge.textContent = outcome;
+      outBadge.style.cssText = `display:inline-flex;align-items:center;justify-content:center;width:28px;height:20px;border-radius:4px;font-size:10px;font-weight:800;letter-spacing:.5px;border:1.5px solid ${outcomeColor};color:${outcomeColor};background:${outcomeColor}18;margin-left:4px;`;
+    } else {
+      outBadge.style.display = 'none';
+    }
+  }
+
+  // Mismatch banner
+  const hasMismatch = lbl !== 'unknown' && (outcome === 'FP' || outcome === 'FN');
+  const banner = document.getElementById('mismatchBanner');
+  banner.style.display = hasMismatch ? 'flex' : 'none';
+  if (hasMismatch) {
+    const archLbl = lbl==='planet' ? 'planet' : 'false positive';
+    const predLbl = predPlanet ? 'planet (positive)' : 'non-planet (negative)';
+    document.getElementById('mismatchDetail').textContent =
+      outcome === 'FN'
+        ? `False Negative — archive labels this as a ${archLbl} but model predicted ${predLbl}. Check: shallow transit, noisy LC, or insufficient training examples.`
+        : `False Positive — archive labels this as a ${archLbl} but model predicted ${predLbl}. Check: eclipsing binary, stellar variability, or instrumental artifact.`;
+  }
+}
+
+// ── Light curve ──────────────────────────────────────────────────────────────
+function renderLightCurve(d) {
+  document.getElementById('lcSubtitle').textContent =
+    `${d.mission||'Kepler'} · ${(d.nPoints||2000).toLocaleString()} pts (phase-folded)`;
+
+  if (d.gradcam400 && d.gradcam400.length > 0) {
+    buildLC(d.gradcam400, d, d.bilstmAttention400);
+  } else if (d.bilstmAttention400 && d.bilstmAttention400.length > 0) {
+    buildLC(d.bilstmAttention400, d, null);
+  } else if (d._liveFromNASA && d.depth > 0 && d.duration > 0) {
+    buildSyntheticLC(d);
+  } else {
+    // Fallback: flat line with small noise
+    const N = 400;
+    const raw = Array.from({length:N}, (_,i) => 1 + (Math.random()-0.5)*0.006);
+    lcData = {raw, smooth:raw, gradcam:new Array(N).fill(0), N};
+    drawLC();
+  }
+}
+
+function buildSyntheticLC(d) {
+  // Synthesise a phase-folded transit from NASA parameters
+  const N = 400;
+  const transitCenter = 0.5;           // phase 0.5
+  const transitWidth  = Math.min(d.duration / d.period, 0.12);  // duration/period, capped
+  const depth         = Math.min(d.depth, 0.3);                 // fractional
+  let seed = 99991;
+  function rng(){seed=(seed*1664525+1013904223)&0xffffffff;return(seed>>>0)/0xffffffff;}
+  const raw=[], smooth=[], gc=[];
+  for (let i=0; i<N; i++) {
+    const phase = i/N;
+    const diff  = Math.abs(phase - transitCenter);
+    const inTransit = diff < transitWidth/2;
+    const trapDepth = inTransit ? depth : 0;
+    const noise = (rng()-0.5)*2*0.003;
+    raw.push(1 - trapDepth + noise);
+    smooth.push(1 - trapDepth);
+    gc.push(inTransit ? 1.0 : 0.0);
+  }
+  lcData = {raw, smooth, gradcam:gc, N};
+  drawLC();
+}
+
+function buildLC(gc400, d, att400) {
+  const N = gc400.length;
+  const raw = [], smooth = [], gc = [], att = [];
+  const Natt = att400 && att400.length === N ? N : 0;
+
+  // Use actual flux data exported from the notebook when available
+  const flux = (d.flux400 && d.flux400.length === N) ? d.flux400 : null;
+
+  if (flux) {
+    // Real phase-folded, preprocessed flux — different for every star
+    for (let i = 0; i < N; i++) {
+      raw.push(flux[i]);
+      smooth.push(flux[i]);
+      gc.push(gc400[i]);
+      att.push(Natt ? att400[i] : (gc400.length === N ? gc400[i] : 0));
+    }
+  } else {
+    // Fallback for old JSONs that don't have flux400
+    let seed = 12345 + (d.id ? d.id.charCodeAt(0) * 31 + d.id.charCodeAt(d.id.length-1) : 0);
+    function rng(){seed=(seed*1664525+1013904223)&0xffffffff;return(seed>>>0)/0xffffffff;}
+    for (let i = 0; i < N; i++) {
+      const a = gc400[i];
+      const noise = (rng()-0.5)*2*0.006;
+      const dip = a * 0.12;
+      raw.push(1.0 - dip + noise);
+      smooth.push(1.0 - dip + noise*0.15);
+      gc.push(a);
+      att.push(Natt ? att400[i] : (gc400.length === N ? gc400[i] : 0));
+    }
+  }
+  lcData = {raw, smooth, gradcam:gc, bilstmAtt:att, N};
+  drawLC();
+}
+
+function drawLC() {
+  const canvas = document.getElementById('lcCanvas');
+  const W = canvas.offsetWidth || canvas.parentElement.offsetWidth;
+  const H = 160;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#111827'; ctx.fillRect(0,0,W,H);
+
+  if (!lcData) return;
+  const {raw, smooth, gradcam, bilstmAtt, N} = lcData;
+
+  const allVals = raw;
+  const yMin = Math.min(...allVals) - 0.002;
+  const yMax = Math.max(...allVals) + 0.002;
+  const yRange = yMax - yMin || 1;
+  const toY = v => H - 10 - ((v - yMin) / yRange) * (H - 20);
+  const toX = i => (i / (N - 1)) * (W - 2) + 1;
+
+  // BiLSTM attention overlay (purple) — drawn first so Grad-CAM sits above
+  if (bilstmAtt && bilstmAtt.length === N) {
+    const attMax = Math.max(...bilstmAtt, 0.001);
+    for (let i = 0; i < N - 1; i++) {
+      if (bilstmAtt[i] > 0.05) {
+        ctx.fillStyle = `rgba(124,58,237,${(bilstmAtt[i]/attMax)*0.35})`;
+        ctx.fillRect(toX(i), 0, toX(i+1)-toX(i)+1, H);
+      }
+    }
+  }
+
+  // Grad-CAM overlay
+  const gcMax = Math.max(...gradcam, 0.001);
+  for (let i = 0; i < N - 1; i++) {
+    if (gradcam[i] > 0.05) {
+      ctx.fillStyle = `rgba(239,68,68,${(gradcam[i]/gcMax)*0.4})`;
+      ctx.fillRect(toX(i), 0, toX(i+1)-toX(i)+1, H);
+    }
+  }
+
+  // Grid lines
+  ctx.strokeStyle = '#1e2d47'; ctx.lineWidth = 1;
+  for (let g = 0.25; g < 1; g += 0.25) {
+    const gx = g * (W-2) + 1;
+    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+  }
+
+  // Raw flux (faint)
+  ctx.beginPath(); ctx.strokeStyle = 'rgba(59,130,246,0.3)'; ctx.lineWidth = 1;
+  for (let i = 0; i < N; i++) {
+    i === 0 ? ctx.moveTo(toX(i), toY(raw[i])) : ctx.lineTo(toX(i), toY(raw[i]));
+  }
+  ctx.stroke();
+
+  // Smooth
+  ctx.beginPath(); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 1.8;
+  for (let i = 0; i < N; i++) {
+    i === 0 ? ctx.moveTo(toX(i), toY(smooth[i])) : ctx.lineTo(toX(i), toY(smooth[i]));
+  }
+  ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = '#475569'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+  ['0.0','0.25','0.5','0.75','1.0'].forEach((lbl,k) => {
+    ctx.fillText(lbl, (k*0.25)*(W-2)+1, H-1);
+  });
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif';
+  ctx.fillText('Phase', W/2-12, H-1);
+}
+
+// ── Model comparison table ────────────────────────────────────────────────────
+// Resolve the CNN's decision from model output only, in the documented order:
+// 1. the explicit DualView CNN entry in model_preds, then
+// 2. cnnConf compared against the threshold actually used, then
+// 3. unknown.
+// The top-level d.prediction is deliberately NOT used: the legacy pipeline
+// derived it from the archive label, so trusting it would report the answer
+// back to the user as if it were a prediction.
+function cnnDecision(d) {
+  const mp = (d && d.model_preds && d.model_preds['DualView CNN']) || null;
+  if (mp && (mp.pred === 'planet' || mp.pred === 'false')) {
+    return {pred: mp.pred, source: 'model', conf: numOrNull(mp.prob), threshold: numOrNull(d.cnnThreshold)};
+  }
+  const conf = numOrNull(d && d.cnnConf);
+  if (conf !== null) {
+    const thr = numOrNull(d && d.cnnThreshold);
+    const use = (thr === null) ? 0.5 : thr;   // fallback only when no threshold was stored
+    return {pred: conf >= use ? 'planet' : 'false', source: 'confidence', conf, threshold: use};
+  }
+  return {pred: 'unknown', source: 'none', conf: null, threshold: null};
+}
+
+// true when the threshold came from the validation-tuned Youden value rather
+// than the 0.5 fallback, so the UI does not mislabel the decision rule.
+function cnnThresholdIsTuned(d) {
+  return numOrNull(d && d.cnnThreshold) !== null;
+}
+
+function numOrNull(v) {
+  if (v === undefined || v === null || v === '' || isNaN(v)) return null;
+  return +v;
+}
+
+function norm(m) {
+  // Unavailable metrics stay null so the UI can render an em dash instead of a
+  // fabricated 0 or 0.5.
+  const n = v => {
+    if (v === undefined || v === null || v === '' || isNaN(v)) return null;
+    return +v;
+  };
+  if (!m) return {acc:null,prec:null,rec:null,f1:null,auc:null,mcc:null,cv_f1_mean:null,cv_f1_std:null};
+  return {
+    acc:        n(m.acc  !== undefined ? m.acc  : m.accuracy),
+    prec:       n(m.prec !== undefined ? m.prec : m.precision),
+    rec:        n(m.rec  !== undefined ? m.rec  : m.recall),
+    f1:         n(m.f1),
+    auc:        n(m.auc),
+    mcc:        n(m.mcc),
+    cv_f1_mean: n(m.cv_f1_mean),   // never substituted with the single-split f1
+    cv_f1_std:  n(m.cv_f1_std),
+  };
+}
+
+function pct(v) { return (v !== undefined && v !== null && !isNaN(v)) ? (v*100).toFixed(1)+'%' : '—'; }
+function mccFmt(v) { return (v !== undefined && v !== null && !isNaN(v)) ? (+v).toFixed(2) : '—'; }
+
+function renderModelTable(d) {
+  if (d._liveFromNASA) {
+    document.getElementById('modelTableBody').innerHTML = `
+      <tr><td colspan="10" style="padding:24px 16px; text-align:center; color:var(--muted); font-size:13px; line-height:1.7;">
+        <div style="font-size:20px; margin-bottom:6px;">🔬</div>
+        <strong>ML metrics not available for live-fetched stars.</strong><br>
+        To see model comparisons, run this KOI through the Colab notebook and drop the exported JSON here.
+      </td></tr>`;
+    return;
+  }
+
+  // Build rows: traditional ML models + Deep Learning (CNN + BiLSTM)
+  const mlModels = d.models ? Object.entries(d.models) : [['XGBoost', d.xgb]];
+  const cnnMetrics = norm(d.cnn);
+  const bilstmMetrics = norm(d.bilstm);
+  const modelPreds = d.model_preds || {};
+
+  // Collect all normalised metrics for best-of highlighting
+  const allNorm = [...mlModels.map(([,m]) => norm(m)), cnnMetrics, bilstmMetrics];
+  // Ignore nulls so a missing metric never becomes the "best" score.
+  const bestOf = key => {
+    const vals = allNorm.map(m => m[key]).filter(v => typeof v === 'number' && !isNaN(v));
+    return vals.length ? Math.max(...vals) : null;
+  };
+  const bestAcc  = bestOf('acc');
+  const bestF1   = bestOf('f1');
+  const bestAuc  = bestOf('auc');
+  const bestMcc  = bestOf('mcc');
+  const bestCvF1 = bestOf('cv_f1_mean');
+
+  const MODEL_COLORS = {
+    'Logistic Regression': 'var(--muted)',
+    'Decision Tree':       'var(--muted)',
+    'KNN':                 'var(--muted)',
+    'SVM':                 'var(--muted)',
+    'Random Forest':       'var(--accent)',
+    'Extra Trees':         'var(--accent)',
+    'MLP':                 'var(--accent)',
+    'XGBoost':             'var(--accent)',
+    'LightGBM':            'var(--accent)',
+    'Stacking Ensemble':   'var(--green)',
+    'Ensemble (Voting)':   'var(--green)',
+    'BiLSTM':              'var(--accent2)',
+  };
+
+  function predCell(mname) {
+    const mp = modelPreds[mname];
+    if (!mp) {
+      const xc = numOrNull(d.xgbConf);
+      if (mname === 'XGBoost' && xc !== null) {
+        const p = xc > 0.5;
+        return `<div class="pred-cell">
+          <span class="pred-pill ${p?'pred-p':'pred-f'}">${p?'🪐':'✗'} ${p?'Planet':'Non-pl.'}</span>
+          <div class="conf-val">${(xc*100).toFixed(0)}%</div></div>`;
+      }
+      return `<div class="pred-cell"><span class="pred-pill pred-u">?</span></div>`;
+    }
+    if (mp.pred !== 'planet' && mp.pred !== 'false') {
+      return `<div class="pred-cell"><span class="pred-pill pred-u">?</span></div>`;
+    }
+    const isPl = mp.pred === 'planet';
+    const p = numOrNull(mp.prob);
+    const conf = p !== null ? `<div class="conf-val">${(p*100).toFixed(0)}%</div>` : '';
+    return `<div class="pred-cell">
+      <span class="pred-pill ${isPl?'pred-p':'pred-f'}">${isPl?'🪐':'✗'} ${isPl?'Planet':'Non-pl.'}</span>${conf}</div>`;
+  }
+
+  function f1Bar(f1, best) {
+    if (f1 === null) {
+      return `<td class="f1-cell"><div class="f1-wrap"><span class="f1-val">—</span></div></td>`;
+    }
+    const w = (best !== null && best > 0) ? Math.min((f1/best)*100, 100) : f1*100;
+    const isBest = best !== null && Math.abs(f1 - best) < 0.001;
+    const color = isBest ? 'var(--green)' : 'var(--accent)';
+    return `<td class="f1-cell">
+      <div class="f1-wrap">
+        <div class="f1-bar-bg"><div class="f1-bar" style="background:${color}" data-target="${w}"></div></div>
+        <span class="f1-val ${isBest?'best':''}">${pct(f1)}</span>
+      </div></td>`;
+  }
+
+  function metricCell(v, bestV) {
+    const isBest = v !== null && bestV !== null && Math.abs(v - bestV) < 0.001 && bestV > 0;
+    return `<td class="metric-cell ${isBest?'best':''}">${pct(v)}</td>`;
+  }
+
+  function mccCell(v, bestV) {
+    const isBest = v !== null && bestV !== null && Math.abs(v - bestV) < 0.001 && bestV > 0;
+    return `<td class="metric-cell ${isBest?'best':''}">${mccFmt(v)}</td>`;
+  }
+
+  function cvCell(mean, std, bestV) {
+    const isBest = mean !== null && bestV !== null && Math.abs(mean - bestV) < 0.001 && bestV > 0;
+    const stdStr = (std !== null && std > 0) ? ` <span style="opacity:.6;font-size:10px">±${pct(std)}</span>` : '';
+    return `<td class="metric-cell ${isBest?'best':''}">${pct(mean)}${stdStr}</td>`;
+  }
+
+  let rank = 0;
+  let rows = '';
+
+  mlModels.forEach(([name, raw]) => {
+    rank++;
+    const m = norm(raw);
+    const color = MODEL_COLORS[name] || 'var(--accent)';
+    rows += `<tr>
+      <td class="metric-cell" style="color:var(--muted);font-size:11px">${rank}</td>
+      <td><span class="model-name" style="color:${color}">${name}</span></td>
+      ${metricCell(m.acc, bestAcc)}
+      <td class="metric-cell">${pct(m.prec)}</td>
+      <td class="metric-cell">${pct(m.rec)}</td>
+      ${metricCell(m.auc, bestAuc)}
+      ${mccCell(m.mcc, bestMcc)}
+      ${cvCell(m.cv_f1_mean, m.cv_f1_std, bestCvF1)}
+      ${f1Bar(m.f1, bestF1)}
+      <td>${predCell(name)}</td>
+    </tr>`;
+  });
+
+  // Divider + 1D CNN
+  rank++;
+  const cnnOut   = cnnDecision(d);
+  const cnnPred  = cnnOut.pred;
+  const cnnIsPl  = cnnPred === 'planet';
+  const cnnConf  = cnnOut.conf;
+  const cnnPredHtml = `<div class="pred-cell">
+    <span class="pred-pill ${cnnIsPl?'pred-p':(cnnPred==='false'?'pred-f':'pred-u')}">${cnnIsPl?'🪐':(cnnPred==='false'?'✗':'?')} ${cnnIsPl?'Planet':(cnnPred==='false'?'Non-pl.':'?')}</span>
+    <div class="conf-val">${cnnConf !== null ? (cnnConf*100).toFixed(0)+'%' : ''}</div></div>`;
+
+  rows += `<tr class="model-divider"><td colspan="10" style="padding:12px 10px 6px;">Deep Learning</td></tr>
+  <tr>
+    <td class="metric-cell" style="color:var(--muted);font-size:11px">${rank}</td>
+    <td><span class="model-name" style="color:var(--green)">DualView CNN</span></td>
+    ${metricCell(cnnMetrics.acc, bestAcc)}
+    <td class="metric-cell">${pct(cnnMetrics.prec)}</td>
+    <td class="metric-cell">${pct(cnnMetrics.rec)}</td>
+    ${metricCell(cnnMetrics.auc, bestAuc)}
+    ${mccCell(cnnMetrics.mcc, bestMcc)}
+    ${cvCell(cnnMetrics.cv_f1_mean, cnnMetrics.cv_f1_std, bestCvF1)}
+    ${f1Bar(cnnMetrics.f1, bestF1)}
+    <td>${cnnPredHtml}</td>
+  </tr>
+  ${(() => { rank++; return ''; })()}
+  <tr>
+    <td class="metric-cell" style="color:var(--muted);font-size:11px">${rank}</td>
+    <td><span class="model-name" style="color:var(--accent2)">BiLSTM + Attention</span></td>
+    ${metricCell(bilstmMetrics.acc, bestAcc)}
+    <td class="metric-cell">${pct(bilstmMetrics.prec)}</td>
+    <td class="metric-cell">${pct(bilstmMetrics.rec)}</td>
+    ${metricCell(bilstmMetrics.auc, bestAuc)}
+    ${mccCell(bilstmMetrics.mcc, bestMcc)}
+    ${cvCell(bilstmMetrics.cv_f1_mean, bilstmMetrics.cv_f1_std, bestCvF1)}
+    ${f1Bar(bilstmMetrics.f1, bestF1)}
+    <td>${predCell('BiLSTM')}</td>
+  </tr>`;
+
+  document.getElementById('modelTableBody').innerHTML = rows;
+}
+
+// ── CNN panel ─────────────────────────────────────────────────────────────────
+function renderCNN(d) {
+  const m = norm(d.cnn);
+  const out = cnnDecision(d);
+  const conf = out.conf;
+  document.getElementById('cnnConfText').textContent = conf === null
+    ? 'Confidence unavailable'
+    : `Conf: ${(conf*100).toFixed(1)}% (TTA avg)`;
+
+  const metrics = [
+    {name:'Accuracy',  val:m.acc,        color:'#3b82f6', fmt: pct},
+    {name:'Precision', val:m.prec,       color:'#8b5cf6', fmt: pct},
+    {name:'Recall',    val:m.rec,        color:'#06b6d4', fmt: pct},
+    {name:'F1 Score',  val:m.f1,         color:'#10b981', fmt: pct},
+    {name:'AUC-ROC',   val:m.auc,        color:'#f59e0b', fmt: pct},
+    {name:'MCC',       val:(m.mcc===null?null:(m.mcc+1)/2), color:'#ec4899', fmt: () => mccFmt(m.mcc)},
+  ];
+  document.getElementById('cnnMetrics').innerHTML = metrics.map(({name,val,color,fmt}) => `
+    <div class="cnn-row">
+      <div class="cnn-label-row">
+        <span class="cnn-name">${name}</span>
+        <span class="cnn-val" style="color:${color}">${fmt(val)}</span>
+      </div>
+      <div class="cnn-bar-bg"><div class="cnn-bar" style="background:${color}" data-target="${val===null?0:Math.min(Math.max(val*100,0),100)}"></div></div>
+    </div>`).join('');
+
+  const isPl   = out.pred === 'planet';
+  const isFp   = out.pred === 'false';
+  const archPl = (d.label || '') === 'planet';
+  const archFp = (d.label || '') === 'false_positive';
+  // Report disagreement in both directions, not just missed planets.
+  const missed  = archPl && isFp;   // archive planet, model says no
+  const falseAl = archFp && isPl;   // archive false positive, model says yes
+  const mismatch = missed || falseAl;
+
+  // Only claim Youden when a tuned threshold is actually available.
+  const thrNote = cnnThresholdIsTuned(d)
+    ? `The model uses a validation-tuned Youden's J threshold of ${(out.threshold*100).toFixed(1)}%, not a fixed 50%.`
+    : 'No tuned threshold was stored for this result, so the decision falls back to 50%.';
+
+  const banner = isPl
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:7px;font-weight:700;font-size:12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--green)">
+        <span>🪐</span><span>Transit Detected — Planet Candidate</span>
+        <span style="margin-left:auto;font-size:11px;">${conf===null?'—':(conf*100).toFixed(1)+'%'}</span></div>`
+    : isFp
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:7px;font-weight:700;font-size:12px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:var(--red)">
+        <span>✗</span><span>False Positive — Not a Planet</span>
+        <span style="margin-left:auto;font-size:11px;">${conf===null?'—':(conf*100).toFixed(1)+'%'}</span></div>`
+    : `<div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:7px;font-weight:700;font-size:12px;background:rgba(148,163,184,0.12);border:1px solid rgba(148,163,184,0.3);color:var(--muted)">
+        <span>?</span><span>No CNN decision available</span></div>`;
+
+  const mismatchNote = mismatch
+    ? `<div class="cnn-mismatch">⚠ ${missed
+        ? 'Archive labels this as a planet but the DualView CNN predicted non-planet'
+        : 'Archive labels this as a false positive but the DualView CNN predicted a planet candidate'} — this may reflect a low confidence score or class imbalance in the training set. ${thrNote}</div>`
+    : '';
+
+  const noModelNote = d._liveFromNASA
+    ? `<div class="cnn-mismatch">ℹ This panel is empty because a live NASA lookup runs no model. Import a pipeline JSON, or use <em>Run pipeline</em>, to see a real DualView CNN verdict. The archive disposition above is catalogue data, not a prediction.</div>`
+    : '';
+
+  document.getElementById('cnnPredBox').innerHTML = banner + noModelNote + mismatchNote;
+
+  // Grad-CAM note
+  const locVal = numOrNull(d.explainability && d.explainability.gradcam_localization);
+  document.getElementById('gradcamNote').textContent =
+    locVal !== null
+      ? (() => {
+        const loc = locVal;
+        const outside = 1 - loc;
+        const ratio = loc > 0 ? (loc / Math.max(outside, 0.001)).toFixed(1) : '—';
+        return `Grad-CAM localization: ${(loc*100).toFixed(1)}% inside transit window (phase 0.45–0.55) vs ${(outside*100).toFixed(1)}% outside. Inside:Outside ratio = ${ratio}:1. Computed on global branch (2000-pt LC). Higher ratio = model is attending the correct region.`;
+      })()
+      : 'Grad-CAM localization was not computed for this result. Grad-CAM highlights which phase regions most influenced the DualView CNN global branch prediction.';
+}
+
+// ── BiLSTM panel ──────────────────────────────────────────────────────────────
+function renderBiLSTM(d) {
+  const m = norm(d.bilstm);
+  const conf = numOrNull(d.bilstmConf);
+  document.getElementById('bilstmConfText').textContent = conf === null
+    ? 'Confidence unavailable'
+    : `Conf: ${(conf*100).toFixed(1)}% (TTA avg)`;
+
+  const metrics = [
+    {name:'Accuracy',  val:m.acc,        color:'#3b82f6', fmt: pct},
+    {name:'Precision', val:m.prec,       color:'#8b5cf6', fmt: pct},
+    {name:'Recall',    val:m.rec,        color:'#06b6d4', fmt: pct},
+    {name:'F1 Score',  val:m.f1,         color:'#10b981', fmt: pct},
+    {name:'AUC-ROC',   val:m.auc,        color:'#f59e0b', fmt: pct},
+    {name:'MCC',       val:(m.mcc===null?null:(m.mcc+1)/2), color:'#ec4899', fmt: () => mccFmt(m.mcc)},
+  ];
+  document.getElementById('bilstmMetrics').innerHTML = metrics.map(({name,val,color,fmt}) => `
+    <div class="cnn-row">
+      <div class="cnn-label-row">
+        <span class="cnn-name">${name}</span>
+        <span class="cnn-val" style="color:${color}">${fmt(val)}</span>
+      </div>
+      <div class="cnn-bar-bg"><div class="cnn-bar" style="background:${color}" data-target="${val===null?0:Math.min(Math.max(val*100,0),100)}"></div></div>
+    </div>`).join('');
+
+  // Same resolution order as the CNN: explicit model output, then thresholded
+  // confidence, then unknown.
+  const mp = (d.model_preds || {})['BiLSTM'];
+  let bPred = 'unknown';
+  if (mp && (mp.pred === 'planet' || mp.pred === 'false')) {
+    bPred = mp.pred;
+  } else if (conf !== null) {
+    const bThr = numOrNull(d.bilstmThreshold);
+    bPred = conf >= (bThr === null ? 0.5 : bThr) ? 'planet' : 'false';
+  }
+  const isPl = bPred === 'planet';
+  const isFp = bPred === 'false';
+  const archPl = (d.label || '') === 'planet';
+  const archFp = (d.label || '') === 'false_positive';
+  const missed  = archPl && isFp;
+  const falseAl = archFp && isPl;
+  const mismatch = missed || falseAl;
+
+  const bBanner = isPl
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:7px;font-weight:700;font-size:12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--green)">
+        <span>🪐</span><span>Transit Detected — Planet Candidate</span>
+        <span style="margin-left:auto;font-size:11px;">${conf===null?'—':(conf*100).toFixed(1)+'%'}</span></div>`
+    : isFp
+    ? `<div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:7px;font-weight:700;font-size:12px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:var(--red)">
+        <span>✗</span><span>False Positive — Not a Planet</span>
+        <span style="margin-left:auto;font-size:11px;">${conf===null?'—':(conf*100).toFixed(1)+'%'}</span></div>`
+    : `<div style="display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:7px;font-weight:700;font-size:12px;background:rgba(148,163,184,0.12);border:1px solid rgba(148,163,184,0.3);color:var(--muted)">
+        <span>?</span><span>No BiLSTM decision available</span></div>`;
+
+  const bMismatch = mismatch
+    ? `<div class="cnn-mismatch">⚠ ${missed
+        ? 'Archive labels this as a planet but BiLSTM predicted non-planet'
+        : 'Archive labels this as a false positive but BiLSTM predicted a planet candidate'} — low confidence score, transit near the phase edge, or class imbalance.</div>`
+    : '';
+
+  document.getElementById('bilstmPredBox').innerHTML = bBanner + bMismatch;
+
+  // Attention localization note
+  const bLoc = numOrNull(d.explainability && d.explainability.bilstm_localization);
+  const attnArr = d.bilstmAttention400;
+  document.getElementById('bilstmNote').textContent =
+    bLoc !== null
+      ? (() => {
+        const outside = 1 - bLoc;
+        const ratio = bLoc > 0 ? (bLoc / Math.max(outside, 0.001)).toFixed(1) : '—';
+        return `Attention localization: ${(bLoc*100).toFixed(1)}% inside transit window (phase 0.45–0.55) vs ${(outside*100).toFixed(1)}% outside. Inside:Outside ratio = ${ratio}:1. Soft-attention weights let the BiLSTM explain itself without external gradients.`;
+      })()
+      : (attnArr && attnArr.length > 0
+          ? 'Attention map available for this star — colourised overlay shown on the light curve above.'
+          : 'BiLSTM attention highlights the phase regions this recurrent model relied on. Drop a JSON from the Colab notebook to populate pipeline metrics.');
+}
+
+// ── SHAP bars ─────────────────────────────────────────────────────────────────
+function renderSHAP(d) {
+  const shap = (d.shap || []).slice(0, 8)
+    .filter(f => numOrNull(f.val) !== null);
+  if (shap.length === 0) {
+    document.getElementById('shapBars').innerHTML = '<div style="font-size:11px;color:var(--muted);">No SHAP data in this result.</div>';
+    return;
+  }
+  const maxVal = Math.max(...shap.map(f => Math.abs(f.val)), 0.001);
+  document.getElementById('shapBars').innerHTML = shap.map(f => {
+    const name = f.feature || f.feat || '?';   // support both export key names
+    const pos  = f.pos !== undefined ? f.pos : f.val >= 0;
+    const barPct = Math.min(Math.abs(f.val) / maxVal * 100, 100);
+    const lbl  = Math.abs(f.val) > 1 ? Math.abs(f.val).toFixed(3) : Math.abs(f.val).toFixed(2);
+    return `<div class="shap-row">
+      <span class="shap-feat">${name}</span>
+      <div class="shap-bar-wrap">
+        <div class="shap-bar ${pos?'shap-pos':'shap-neg'}" data-target="${barPct}" style="width:0%">${lbl}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Explainability metrics ─────────────────────────────────────────────────────
+function renderExplainability(d) {
+  const em = d.explainability;
+  const card = document.getElementById('explCard');
+  if (!em) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  // Every value is optional: SHAP is skipped when the package is missing and
+  // localization is skipped when explainability could not be computed. Null
+  // must render as an em dash with an empty bar, never as 0.
+  const v0 = numOrNull(em.shap_faithfulness_drop);
+  const v1 = numOrNull(em.shap_sparsity);
+  const v2 = numOrNull(em.shap_consistency);
+  const v3 = numOrNull(em.gradcam_localization);
+  const v4 = numOrNull(em.bilstm_localization);
+
+  const pct0 = v => v === null ? '—' : (v*100).toFixed(1)+'%';
+  const dec0 = v => v === null ? '—' : v.toFixed(3);
+
+  const rows = [
+    {
+      label: 'SHAP Faithfulness',
+      text: v0 === null ? '—' : ((v0 >= 0 ? '+' : '') + (v0*100).toFixed(1)+'%'),
+      color: v0 === null ? 'var(--muted)' : (v0 >= 0 ? 'var(--green)' : 'var(--yellow)'),
+      bar:   v0 === null ? 0 : Math.max(0, Math.min(1, v0 + 0.5)),
+      barColor: v0 === null ? 'var(--muted)' : (v0 >= 0 ? 'var(--green)' : 'var(--yellow)'),
+      note: v0 === null
+        ? 'Not computed — SHAP was unavailable or skipped for this run.'
+        : 'Accuracy drop when top-3 SHAP features are masked. Positive = trustworthy.',
+    },
+    {
+      label: 'SHAP Sparsity',
+      text: pct0(v1),
+      color: v1 === null ? 'var(--muted)' : 'var(--accent)',
+      bar:   v1 === null ? 0 : v1,
+      barColor: v1 === null ? 'var(--muted)' : 'var(--accent)',
+      note: v1 === null
+        ? 'Not computed — SHAP was unavailable or skipped for this run.'
+        : 'Fraction of near-zero SHAP values. Higher = fewer features drive decision.',
+    },
+    {
+      label: 'SHAP Consistency',
+      text: dec0(v2),
+      color: v2 === null ? 'var(--muted)' : 'var(--cyan)',
+      bar:   v2 === null ? 0 : (v2 + 1) / 2,
+      barColor: v2 === null ? 'var(--muted)' : 'var(--cyan)',
+      note: v2 === null
+        ? 'Not computed — SHAP was unavailable or skipped for this run.'
+        : 'Spearman rank correlation across samples. Near 1.0 = stable explanation.',
+    },
+    {
+      label: 'Grad-CAM Localization',
+      text: pct0(v3),
+      color: v3 === null ? 'var(--muted)' : 'var(--orange)',
+      bar:   v3 === null ? 0 : v3,
+      barColor: v3 === null ? 'var(--muted)' : 'var(--orange)',
+      note: v3 === null
+        ? 'Not computed for this star.'
+        : 'Fraction of DualView CNN (global branch) Grad-CAM activation inside the transit window (phase 0.45–0.55). Higher = model correctly focused on transit.',
+    },
+    {
+      label: 'BiLSTM Attention Localization',
+      text: pct0(v4),
+      color: v4 === null ? 'var(--muted)' : 'var(--accent2)',
+      bar:   v4 === null ? 0 : v4,
+      barColor: v4 === null ? 'var(--muted)' : 'var(--accent2)',
+      note: v4 === null
+        ? 'Not computed for this star.'
+        : 'Fraction of BiLSTM soft-attention inside the transit window (phase 0.45–0.55). Attention weights let the recurrent model explain itself without external gradients.',
+    },
+  ];
+
+  document.getElementById('explGrid').innerHTML = rows.map(r => `
+    <div>
+      <div class="expl-row">
+        <span class="expl-label">${r.label}</span>
+        <div class="expl-bar-bg"><div class="expl-bar" style="background:${r.barColor}" data-target="${r.bar*100}"></div></div>
+        <span class="expl-val" style="color:${r.color}">${r.text}</span>
+      </div>
+      <div class="expl-note">${r.note}</div>
+    </div>`).join('');
+}
+
+// ── Visuals section (Cell 5–9 base64 images) ──────────────────────────────────
+function renderVisuals(d) {
+  const card = document.getElementById('visualsCard');
+  const grid = document.getElementById('visualsGrid');
+
+  const panels = [
+    { key: 'img_preprocess',  label: '📈 Cell 5 — Preprocessed Light Curves',        perStar: false },
+    { key: 'img_flux',        label: '🔵 Cell 6 — Phase-Folded Flux + Grad-CAM',     perStar: true  },
+    { key: 'img_shap',        label: '🔍 Cell 7 — SHAP Summary (XGBoost)',           perStar: false },
+    { key: 'img_training',    label: '🧠 Cell 8 — CNN Training Curves',              perStar: false },
+    { key: 'img_gradcam',     label: '🌡 Cell 8 — Grad-CAM Activation',              perStar: true  },
+    { key: 'img_bilstm_training', label: '🧠 Cell 7c — BiLSTM Training Curves',      perStar: false },
+    { key: 'img_models',      label: '🏆 Cell 9 — Model Comparison Chart',           perStar: false },
+  ];
+
+  const hasAny = panels.some(p => d[p.key]);
+  if (!hasAny) {
+    grid.innerHTML = `<div class="vis-nodata" style="grid-column:1/-1">
+      No embedded images in this JSON. Re-run the updated Colab notebook to generate base64 plots.
+    </div>`;
+    card.style.display = '';
+    return;
+  }
+
+  grid.innerHTML = panels.map(p => {
+    const src = d[p.key];
+    if (!src) return '';
+    const esc = p.label.replace(/'/g, "\\'");
+    return `<div class="vis-panel">
+      <div class="vis-panel-header">${p.label}<span class="vis-expand-hint">click to expand</span></div>
+      <img src="${src}" alt="${p.label}" loading="lazy"
+           onclick="lbShow('${esc}', this.src)">
+    </div>`;
+  }).filter(Boolean).join('');
+
+  card.style.display = '';
+}
+
+// ── Lightbox ───────────────────────────────────────────────────────────────────
+function lbShow(title, src) {
+  document.getElementById('lbTitle').textContent = title;
+  document.getElementById('lbImg').src = src;
+  document.getElementById('lbOverlay').classList.add('lb-open');
+  document.addEventListener('keydown', lbKey);
+}
+function lbHide() {
+  document.getElementById('lbOverlay').classList.remove('lb-open');
+  document.removeEventListener('keydown', lbKey);
+}
+function lbClose(e) {
+  if (e.target === document.getElementById('lbOverlay')) lbHide();
+}
+function lbKey(e) {
+  if (e.key === 'Escape') lbHide();
+}
+
+// ── Animate all data bars ──────────────────────────────────────────────────────
+function animateBars() {
+  document.querySelectorAll('[data-target]').forEach(el => {
+    el.style.width = el.dataset.target + '%';
+  });
+}
+
+// ── NASA nstedAPI ──────────────────────────────────────────────────────────────
+const NASA_NSTED = 'https://exoplanetarchive.ipac.caltech.edu/cgi-bin/nstedAPI/nph-nstedAPI';
+
+async function nstedFetch(params) {
+  const qs = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+  const url = `${NASA_NSTED}?${qs}`;
+  const r = await fetch(url, {credentials:'omit'});
+  if (!r.ok) throw new Error(`NASA API HTTP ${r.status}`);
+  const text = await r.text();
+  if (text.includes('ERROR') && text.includes('Message:')) {
+    const msg = text.match(/Message:\s+(.+?)\s*</) || [];
+    throw new Error('NASA API error: ' + (msg[1] || text.substring(0,120)));
+  }
+  const t = text.trim();
+  if (!t.startsWith('[') && !t.startsWith('{')) throw new Error('Unexpected NASA response format');
+  return JSON.parse(t);
+}
+
+async function fetchById() {
+  const raw    = document.getElementById('fetchInput').value.trim();
+  if (!raw) return;
+  const status = document.getElementById('fetchStatus');
+  const btn    = document.getElementById('fetchBtn');
+
+  status.className = 'fetch-status loading';
+  status.textContent = '⏳ Querying NASA Archive…';
+  btn.disabled = true;
+
+  try {
+    const isTIC = /^tic\s*\d+$/i.test(raw) || /^\d{7,}$/.test(raw);
+    const isKOI = /^K\d{5}\.\d{2}$/i.test(raw.replace(/\s/g,''));
+
+    if (!isTIC && !isKOI) {
+      throw new Error('Format not recognised. Use K00755.01 for KOI or TIC 394137592 for TESS.');
+    }
+
+    let starData;
+    if (isKOI) {
+      starData = await fetchKOI(raw.replace(/\s/g,'').toUpperCase());
+    } else {
+      const ticNum = raw.replace(/tic\s*/i,'').trim();
+      starData = await fetchTIC(ticNum);
+    }
+
+    const id = starData.id;
+    loaded[id] = starData;
+    rebuildList();
+    selectResult(id);
+
+    status.className = 'fetch-status ok';
+    const dispName = starData.label==='planet'?'Planet candidate':starData.label==='false_positive'?'False positive':'Unknown';
+    status.textContent = `✓ ${id} — ${dispName} · P=${starData.period.toFixed(3)} d · Rp=${starData.prad?starData.prad.toFixed(2)+'R⊕':'?'}`;
+  } catch(err) {
+    status.className = 'fetch-status err';
+    status.textContent = '✗ ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function fetchKOI(koiId) {
+  const rows = await nstedFetch({
+    table: 'cumulative',
+    select: 'kepoi_name,kepid,koi_pdisposition,koi_disposition,koi_period,koi_duration,koi_depth,koi_prad,koi_sma,koi_teq,koi_insol,koi_impact,koi_srad,koi_smass,koi_steff,koi_slogg,koi_kepmag,koi_score,koi_time0bk,ra,dec',
+    where: `kepoi_name like '${koiId}'`,
+    format: 'json'
+  });
+  if (rows.length === 0) throw new Error(`${koiId} not found in NASA KOI table.`);
+
+  const r    = rows[0];
+  const disp = (r.koi_pdisposition || '').toUpperCase();
+  const label= disp.includes('CANDIDATE') || disp.includes('CONFIRMED') ? 'planet'
+             : disp.includes('FALSE') ? 'false_positive' : 'unknown';
+
+  return buildFetchedStar({
+    id: koiId, mission: 'Kepler', label,
+    period:   parseFloat(r.koi_period)   || 5,
+    duration: (parseFloat(r.koi_duration) || 2) / 24,
+    depth:    (parseFloat(r.koi_depth)    || 5000) / 1e6,
+    prad:     r.koi_prad   != null ? parseFloat(r.koi_prad)   : null,
+    sma:      r.koi_sma    != null ? parseFloat(r.koi_sma)    : null,
+    teq:      r.koi_teq    != null ? parseFloat(r.koi_teq)    : null,
+    insol:    r.koi_insol  != null ? parseFloat(r.koi_insol)  : null,
+    impact:   r.koi_impact != null ? parseFloat(r.koi_impact) : null,
+    srad:     r.koi_srad   != null ? parseFloat(r.koi_srad)   : null,
+    smass:    r.koi_smass  != null ? parseFloat(r.koi_smass)  : null,
+    steff:    r.koi_steff  != null ? parseFloat(r.koi_steff)  : null,
+    slogg:    r.koi_slogg  != null ? parseFloat(r.koi_slogg)  : null,
+    mag:      r.koi_kepmag != null ? parseFloat(r.koi_kepmag) : null,
+    score:    r.koi_score  != null ? parseFloat(r.koi_score)  : null,
+    disc_year: null,
+    time0:    r.koi_time0bk != null ? parseFloat(r.koi_time0bk) : null,
+    ra:       r.ra  != null ? parseFloat(r.ra)  : null,
+    dec:      r.dec != null ? parseFloat(r.dec) : null,
+  });
+}
+
+async function fetchTIC(ticId) {
+  // Only request columns that actually exist in the NASA TOI table.
+  // pl_orbsmax, pl_eqt, pl_insol, pl_imppar, st_mass are NOT in this table.
+  const rows = await nstedFetch({
+    table: 'toi',
+    select: 'tid,toi,tfopwg_disp,pl_orbper,pl_trandurh,pl_trandep,pl_rade,st_rad,st_teff,st_logg,st_tmag,ra,dec',
+    where: `tid = ${ticId}`,
+    format: 'json'
+  });
+  if (rows.length === 0) throw new Error(`TIC ${ticId} not found in NASA TOI table.`);
+
+  const r    = rows[0];
+  const disp = (r.tfopwg_disp || '').toUpperCase();
+  const label= disp.includes('PC') || disp.includes('KP') ? 'planet'
+             : disp.includes('FP') ? 'false_positive' : 'unknown';
+
+  return buildFetchedStar({
+    id: `TIC-${ticId}`, mission: 'TESS', label,
+    period:   parseFloat(r.pl_orbper)    || 5,
+    duration: (parseFloat(r.pl_trandurh) || 2) / 24,
+    depth:    (parseFloat(r.pl_trandep)  || 5000) / 1e6,
+    prad:     r.pl_rade != null ? parseFloat(r.pl_rade) : null,
+    sma:      null,   // not in TOI table
+    teq:      null,   // not in TOI table
+    insol:    null,   // not in TOI table
+    impact:   null,   // not in TOI table
+    srad:     r.st_rad  != null ? parseFloat(r.st_rad)  : null,
+    smass:    null,   // not in TOI table
+    steff:    r.st_teff != null ? parseFloat(r.st_teff) : null,
+    slogg:    r.st_logg != null ? parseFloat(r.st_logg) : null,
+    mag:      r.st_tmag != null ? parseFloat(r.st_tmag) : null,
+    score:    null, disc_year: null, time0: null,
+    ra:       r.ra  != null ? parseFloat(r.ra)  : null,
+    dec:      r.dec != null ? parseFloat(r.dec) : null,
+  });
+}
+
+function buildFetchedStar(p) {
+  const N = 2000;
+  const phase = Array.from({length:N}, (_,i) => i/N);
+
+  // Synthetic transit via batman-style trapezoid
+  const t0     = 0.5;
+  const dur    = Math.max(0.01, Math.min(0.18, (p.duration||0.08) * (p.period||5)));
+  const depth  = Math.max(1e-5, Math.min(0.5, p.depth || 0.005));
+  const impact = Math.min(0.99, Math.abs(p.impact || 0));
+  const tau    = dur * 0.12;  // ingress/egress width
+
+  const flux = phase.map(ph => {
+    const dt = Math.abs(ph - t0);
+    if (dt < dur/2 - tau) return 1 - depth;
+    if (dt < dur/2 + tau) {
+      const x = (dt - (dur/2 - tau)) / (2*tau);
+      return 1 - depth * (1 - x);
+    }
+    return 1 + (Math.random()-0.5)*0.0004;
+  });
+
+  const gradcam400 = Array.from({length:400}, (_,i) => {
+    const ph = i/400;
+    const dt = Math.abs(ph - t0);
+    return dt < dur/2 + 0.02 ? Math.max(0, 1 - dt/(dur/2+0.02)) : 0;
+  });
+
+  // Synthetic BiLSTM attention — narrow peak with a faint trailing shoulder
+  const bilstmAttention400 = Array.from({length:400}, (_,i) => {
+    const ph = i/400;
+    const dt = Math.abs(ph - t0);
+    if (dt < dur/2 + 0.01) return Math.max(0, 1 - dt/(dur/2+0.01));
+    return Math.max(0, 0.18 * Math.exp(-((dt/dur)*4) * ((dt/dur)*4)));
+  });
+
+  const disp = p.label==='planet'?'CANDIDATE':p.label==='false_positive'?'FALSE POSITIVE':'UNKNOWN';
+  // A live NASA lookup runs NO model. Confidences and decisions used to be
+  // derived from the archive label here, which just echoed the ground truth
+  // back as if it were a prediction. They are now null so the panels say
+  // "not available" and only real pipeline output produces a verdict.
+  return {
+    ...p,
+    _liveFromNASA: true,
+    disposition:   disp,
+    gradcam400,
+    bilstmAttention400,
+    nPoints: N,
+    n_train: 0, n_val: 0,
+    prediction: null,
+    cnnConf: null,
+    cnnThreshold: null,
+    bilstmConf: null,
+    bilstmThreshold: null,
+    xgbConf: null,
+    shap: [],
+    explainability: null,
+    cnn: null, xgb: null, bilstm: null, models: {},
+    model_preds: {},
+  };
+}
+
+function renderStarInfo(d) {
+  const card = document.getElementById('starInfoCard');
+  // Use star_params from Colab JSON, or top-level fields from live fetch
+  const sp = d.star_params || {};
+  const hasParams = d._liveFromNASA || Object.keys(sp).length > 0;
+  if (!hasParams) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  // Merge: live-fetch fields live on d directly; Colab fields live on d.star_params
+  const p = d._liveFromNASA ? d : sp;
+
+  const src = document.getElementById('starInfoSource');
+  if (d._liveFromNASA) {
+    src.textContent = d.mission === 'TESS' ? 'NASA TAP \u00b7 TESS TOI Table' : 'NASA TAP \u00b7 Kepler Cumulative KOI Table';
+    document.getElementById('liveNote').style.display = '';
+  } else {
+    src.textContent = (p.mission||d.mission||'Kepler') === 'TESS'
+      ? 'Colab JSON \u00b7 TESS TOI parameters'
+      : 'Colab JSON \u00b7 Kepler Cumulative KOI parameters';
+    document.getElementById('liveNote').style.display = 'none';
+  }
+
+  function val(v, decimals, unit) {
+    if (v === null || v === undefined || (typeof v === 'number' && isNaN(v)))
+      return `<span class="si-na">Unavailable</span>`;
+    const num = typeof decimals === 'number' ? parseFloat(v).toFixed(decimals) : v;
+    const u   = unit ? `<span class="si-unit">${unit}</span>` : '';
+    return `${num}${u}`;
+  }
+
+  const disp = p.disposition || d.disposition || '';
+  const items = [
+    {label:'KOI / TOI ID',       value: val(d.id)},
+    {label:'Mission',            value: val(p.mission || d.mission)},
+    {label:'Disposition',        value: disp ? val(disp) : '<span class="si-na">Unavailable</span>'},
+    {label:'Archive Label',      value: d.label === 'planet' ? '\ud83e\ude90 Planet / Candidate'
+                                      : d.label === 'false_positive' ? '\u2717 False Positive'
+                                      : '<span class="si-na">Unknown</span>'},
+    {label:'Orbital Period',     value: val(p.period, 4, 'days')},
+    {label:'Transit Duration',   value: p.duration != null
+      ? val(d._liveFromNASA ? p.duration * 24 : p.duration, 2, 'hours')
+      : `<span class="si-na">Unavailable</span>`},
+    {label:'Transit Depth',      value: p.depth != null
+      ? val((parseFloat(p.depth) * (d._liveFromNASA ? 1e6 : 1)).toFixed(0), null, 'ppm')
+      : `<span class="si-na">Unavailable</span>`},
+    {label:'Planet Radius',      value: val(p.prad, 2, 'R\u2295')},
+    {label:'Semi-major Axis',    value: val(p.sma, 4, 'AU')},
+    {label:'Equil. Temperature', value: val(p.teq, 0, 'K')},
+    {label:'Insolation Flux',    value: val(p.insol, 2, 'S\u2295')},
+    {label:'Impact Parameter',   value: val(p.impact, 3)},
+    {label:'Stellar Radius',     value: val(p.srad, 3, 'R\u2609')},
+    {label:'Stellar Mass',       value: val(p.smass, 3, 'M\u2609')},
+    {label:'Stellar Teff',       value: val(p.steff, 0, 'K')},
+    {label:'Stellar log g',      value: val(p.slogg, 3, 'cgs')},
+    {label:'Stellar Magnitude',  value: val(p.mag, 3)},
+    {label:'KIC / TIC ID',       value: val(p.kepid || d.kepid)},
+    {label:'RA',                 value: val(p.ra, 5, '\u00b0')},
+    {label:'Dec',                value: val(p.dec, 5, '\u00b0')},
+    {label:'Disposition Score',  value: val(p.score, 3)},
+  ];
+
+  document.getElementById('starInfoGrid').innerHTML = items.map(({label, value}) => `
+    <div class="si-card">
+      <div class="si-label">${label}</div>
+      <div class="si-value">${value}</div>
+    </div>`).join('');
+}
+
+// ── Docs view toggle ──────────────────────────────────────────────────────
+let docsOpen = false;
+function toggleDocs() {
+  docsOpen = !docsOpen;
+  document.getElementById('docsView').classList.toggle('visible', docsOpen);
+  document.getElementById('mainContent').style.display = docsOpen ? 'none' : '';
+  document.getElementById('docsBtn').classList.toggle('active', docsOpen);
+  if (docsOpen) closeDrawer();
+}
+function docNav(el) {
+  document.querySelectorAll('.docs-nav a').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── Quick-reference drawer ────────────────────────────────────────────────
+function openDrawer() {
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('open');
+}
+function closeDrawerIfOutside(e) {
+  if (e.target === document.getElementById('drawerOverlay')) closeDrawer();
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'd' || e.key === 'D') { e.preventDefault(); toggleDocs(); }
+  if (e.key === '?') { e.preventDefault(); docsOpen ? closeDrawer() : openDrawer(); }
+  if (e.key === 'Escape') {
+    lbHide();
+    closeDrawer();
+    if (docsOpen) toggleDocs();
+  }
+  if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && !docsOpen) {
+    const ids = Object.keys(loaded);
+    const idx = ids.indexOf(current?.id);
+    if (idx !== -1) {
+      const next = e.key === 'ArrowDown' ? ids[idx + 1] : ids[idx - 1];
+      if (next) { e.preventDefault(); selectResult(next); }
+    }
+  }
+});
+
+</script>
+</body>
+</html>

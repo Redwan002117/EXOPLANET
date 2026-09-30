@@ -1,0 +1,45 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+
+# Trained model artefacts — large binaries, reproducible by running pipeline.py
+saved_models/
+*.pt
+*.pth
+*.onnx
+*.joblib
+*.pkl
+
+# results/ IS tracked: it holds the per-star JSON findings.
+# The smoke-test copies under the OS temp dir are not part of this repo.
+
+# LibreOffice temp + lock files (left behind by headless doc conversion)
+.~lock.*
+lu*.tmp
+
+# Local scratch backups from the pipeline/prototype rewrite
+BACKUP_*
+BACKUP3_*
+
+# Duplicate "_e" DOCX renders — text-identical to the canonical deliverables
+thesisreport_final_e.docx
+thesisreport_revised_e.docx
+Thesis_Report_e.docx
+Technical_Documentation_e.docx
+
+# Secrets
+.env
+.env.*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Virtual environments
+.venv/
+venv/
+env/
